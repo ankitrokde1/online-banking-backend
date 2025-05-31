@@ -1,0 +1,22 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://ankitrockde783:Pass%40201003@cluster1.b6cry.mongodb.net/online_banking_db?retryWrites=true&w=majority&appName=Cluster1
+      database: online_banking_db
+  devtools:
+    restart:
+      enabled: false
+
+server:
+  port: 8080
+
+
+app:
+  jwt:
+    secret: uzl4KZyU4pY5TWtaGlzhUcJPKVQ1tS0kfItejc0UAzYKN4P1X65exKO/Vjd/E+Wfh/rJDBJOXhlfjoYhxBdC+g==
+
+jwt:
+  secret: uzl4KZyU4pY5TWtaGlzhUcJPKVQ1tS0kfItejc0UAzYKN4P1X65exKO/Vjd/E+Wfh/rJDBJOXhlfjoYhxBdC+g==
+
+
+
