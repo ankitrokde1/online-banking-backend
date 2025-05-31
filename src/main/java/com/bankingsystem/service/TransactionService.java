@@ -3,8 +3,11 @@ package com.bankingsystem.service;
 import com.bankingsystem.dto.request.TransactionRequest;
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.Transaction;
+import com.bankingsystem.entity.User;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.TransactionRepository;
+import com.bankingsystem.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +17,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionService {
 
-    @Autowired
-    private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     @Transactional
     public Transaction deposit(TransactionRequest request) {
@@ -106,5 +109,26 @@ public class TransactionService {
 
     public List<Transaction> getTransactionsForAccount(String accountId) {
         return transactionRepository.findBySourceAccountIdOrTargetAccountId(accountId, accountId);
+    }
+
+    public boolean isAccountOwnedByUser(String accountId, String username) {
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+
+        if (user == null) {
+            return false;
+        }
+
+        // Find the account by accountId (or accountNumber)
+        Account account = accountRepository.findById(accountId)
+                .orElse(null);
+
+        if (account == null) {
+            return false;
+        }
+
+        // Compare userId of the account with the user's id
+        return account.getUserId().equals(user.getId());
     }
 }
