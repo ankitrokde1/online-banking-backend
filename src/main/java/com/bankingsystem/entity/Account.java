@@ -1,5 +1,6 @@
 package com.bankingsystem.entity;
 
+import com.bankingsystem.entity.enums.AccountType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Account {
 
+
     @Id
     private String id;
 
@@ -22,7 +24,7 @@ public class Account {
     @Indexed(unique = true)
     private String accountNumber;
     private BigDecimal balance;
-    private String accountType; // e.g., SAVINGS, CURRENT
+    private AccountType accountType; // e.g., SAVINGS, CURRENT
     private boolean active;
     private LocalDateTime openedAt;
 }

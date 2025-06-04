@@ -1,5 +1,6 @@
 package com.bankingsystem.entity;
 
+import com.bankingsystem.entity.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,13 +31,14 @@ public class User implements UserDetails {
     private String email;
 
     private String password;  // bcrypt hashed
-    private String role;
+    private UserRole role;
     private LocalDateTime createdAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
+
 
     @Override
     public boolean isAccountNonExpired() {

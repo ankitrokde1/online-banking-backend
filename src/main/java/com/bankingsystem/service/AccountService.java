@@ -3,14 +3,14 @@ package com.bankingsystem.service;
 import com.bankingsystem.dto.response.AccountResponse;
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.User;
+import com.bankingsystem.entity.enums.AccountType;
+import com.bankingsystem.exception.UserNotFoundException;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.util.AccountNumberGenerator;
+import com.bankingsystem.exception.AccountNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import javax.security.auth.login.AccountNotFoundException;
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
@@ -29,7 +29,7 @@ public class AccountService {
                 .userId(userId)
                 .accountNumber(AccountNumberGenerator.generate())  // Utility class
                 .balance(BigDecimal.ZERO)
-                .accountType(accountType)
+                .accountType(AccountType.valueOf(accountType))
                 .active(true)
                 .openedAt(LocalDateTime.now())
                 .build();
@@ -74,7 +74,7 @@ public class AccountService {
     public Account getAccountByIdAndUsername(String accountNumber, String username) throws AccountNotFoundException, AccessDeniedException {
         // Find user by username
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
         // Find an account by id
         Account account = accountRepository.findByAccountNumber(accountNumber)

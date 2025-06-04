@@ -1,5 +1,6 @@
 package com.bankingsystem.dto.response;
 
+import com.bankingsystem.entity.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -9,5 +10,5 @@ public class JwtResponse {
     private String token;
     private String type = "Bearer";
     private String username;
-    private String role;
+    private UserRole role;
 }

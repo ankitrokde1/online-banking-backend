@@ -3,6 +3,7 @@ package com.bankingsystem.controller;
 import com.bankingsystem.dto.response.UserResponse;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +47,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody User updatedUser, Authentication authentication) {
+    public ResponseEntity<?> updateUser(@PathVariable String id, @Valid @RequestBody User updatedUser, Authentication authentication) {
         User existingUser = userService.getUserById(id);
         String loggedInUsername = authentication.getName();
 

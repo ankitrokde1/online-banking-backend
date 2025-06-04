@@ -1,5 +1,7 @@
 package com.bankingsystem.entity;
 
+import com.bankingsystem.entity.enums.TransactionStatus;
+import com.bankingsystem.entity.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,13 +20,13 @@ public class Transaction {
     @Id
     private String id;
 
-    private String type; // DEPOSIT, WITHDRAW, TRANSFER
+    private TransactionType type; // DEPOSIT, WITHDRAW, TRANSFER
     private BigDecimal amount;
 
     private String sourceAccountId; // null for DEPOSIT
     private String targetAccountId; // null for WITHDRAW
 
     private LocalDateTime timestamp;
-    private String status; // SUCCESS, FAILED, etc.
+    private TransactionStatus status; // SUCCESS, FAILED, etc.
     private String description;
 }

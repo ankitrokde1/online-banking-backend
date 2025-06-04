@@ -4,6 +4,7 @@ import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
 import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.entity.User;
+import com.bankingsystem.entity.enums.UserRole;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setCreatedAt(LocalDateTime.now());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole() != null ? request.getRole() : "ROLE_CUSTOMER");
+        user.setRole(request.getRole() != null ? request.getRole() : UserRole.CUSTOMER);
 
         userRepository.save(user);
 
@@ -49,7 +50,7 @@ public class AuthService {
         return userRepository.findByUsername(request.getUsername())
                 .map(user -> {
                     if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                        String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole());
+                        String token = jwtTokenProvider.generateToken(user.getUsername(), String.valueOf(user.getRole()));
                         JwtResponse jwtResponse = new JwtResponse(token, "Bearer", user.getUsername(), user.getRole());
                         return ResponseEntity.ok(jwtResponse);
                     } else {

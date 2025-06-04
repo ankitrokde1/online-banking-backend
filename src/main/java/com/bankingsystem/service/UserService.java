@@ -4,6 +4,7 @@ import com.bankingsystem.dto.response.AccountResponse;
 import com.bankingsystem.dto.response.UserResponse;
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.User;
+import com.bankingsystem.exception.UserNotFoundException;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +65,7 @@ public class UserService {
         }
 
         // Allow role update only if explicitly set
-        if (updatedUser.getRole() != null && !updatedUser.getRole().isBlank()) {
+        if (updatedUser.getRole() != null) {
             existingUser.setRole(updatedUser.getRole());
         }
 
@@ -79,8 +80,15 @@ public class UserService {
 
     public UserResponse getCurrentUserWithAccounts() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+
+        if (username == null || username.isBlank()) {
+            throw new UserNotFoundException("No authenticated user found.");
+        }
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
 
         List<Account> accounts = accountRepository.findByUserId(user.getId());
         List<AccountResponse> accountResponses = accounts.stream()

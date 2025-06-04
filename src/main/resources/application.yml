@@ -10,11 +10,6 @@ spring:
 server:
   port: 8080
 
-
-app:
-  jwt:
-    secret: uzl4KZyU4pY5TWtaGlzhUcJPKVQ1tS0kfItejc0UAzYKN4P1X65exKO/Vjd/E+Wfh/rJDBJOXhlfjoYhxBdC+g==
-
 jwt:
   secret: uzl4KZyU4pY5TWtaGlzhUcJPKVQ1tS0kfItejc0UAzYKN4P1X65exKO/Vjd/E+Wfh/rJDBJOXhlfjoYhxBdC+g==
 

@@ -1,6 +1,7 @@
 package com.bankingsystem.dto.response;
 
 import com.bankingsystem.entity.Account;
+import com.bankingsystem.entity.enums.AccountType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 public class AccountResponse {
 
     private String accountNumber;      // Masked in getter
-    private String accountType;
+    private AccountType accountType;
     private BigDecimal balance;
     private boolean isActive;
     private LocalDateTime openAt;

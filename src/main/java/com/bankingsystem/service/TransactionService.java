@@ -4,11 +4,15 @@ import com.bankingsystem.dto.request.TransactionRequest;
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.Transaction;
 import com.bankingsystem.entity.User;
+import com.bankingsystem.entity.enums.TransactionStatus;
+import com.bankingsystem.entity.enums.TransactionType;
+import com.bankingsystem.exception.AccountNotFoundException;
+import com.bankingsystem.exception.InsufficientBalanceException;
+import com.bankingsystem.exception.InvalidTransferException;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.TransactionRepository;
 import com.bankingsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +33,7 @@ public class TransactionService {
     public Transaction deposit(TransactionRequest request) {
         Optional<Account> accountOpt = accountRepository.findById(request.getTargetAccountId());
         if (accountOpt.isEmpty()) {
-            throw new RuntimeException("Target account not found.");
+            throw new AccountNotFoundException("Target account not found.");
         }
 
         Account account = accountOpt.get();
@@ -37,11 +41,11 @@ public class TransactionService {
         accountRepository.save(account);
 
         Transaction transaction = new Transaction();
-        transaction.setType("DEPOSIT");
+        transaction.setType(TransactionType.DEPOSIT);
         transaction.setAmount(request.getAmount());
         transaction.setTargetAccountId(account.getId());
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setStatus("SUCCESS");
+        transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setDescription(request.getDescription());
 
         return transactionRepository.save(transaction);
@@ -51,23 +55,23 @@ public class TransactionService {
     public Transaction withdraw(TransactionRequest request) {
         Optional<Account> accountOpt = accountRepository.findById(request.getSourceAccountId());
         if (accountOpt.isEmpty()) {
-            throw new RuntimeException("Source account not found.");
+            throw new AccountNotFoundException("Source account not found.");
         }
 
         Account account = accountOpt.get();
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient balance.");
+            throw new InsufficientBalanceException("Insufficient balance.");
         }
 
         account.setBalance(account.getBalance().subtract(request.getAmount()));
         accountRepository.save(account);
 
         Transaction transaction = new Transaction();
-        transaction.setType("WITHDRAW");
+        transaction.setType(TransactionType.WITHDRAW);
         transaction.setAmount(request.getAmount());
         transaction.setSourceAccountId(account.getId());
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setStatus("SUCCESS");
+        transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setDescription(request.getDescription());
 
         return transactionRepository.save(transaction);
@@ -75,18 +79,17 @@ public class TransactionService {
 
     @Transactional
     public Transaction transfer(TransactionRequest request) {
-        Optional<Account> fromAccountOpt = accountRepository.findById(request.getSourceAccountId());
-        Optional<Account> toAccountOpt = accountRepository.findById(request.getTargetAccountId());
+        Account fromAccount = accountRepository.findById(request.getSourceAccountId())
+                .orElseThrow(() -> new AccountNotFoundException("Source account not found."));
+        Account toAccount = accountRepository.findById(request.getTargetAccountId())
+                .orElseThrow(() -> new AccountNotFoundException("Target account not found."));
 
-        if (fromAccountOpt.isEmpty() || toAccountOpt.isEmpty()) {
-            throw new RuntimeException("One or both accounts not found.");
+        if (fromAccount.getId().equals(toAccount.getId())) {
+            throw new InvalidTransferException("Cannot transfer to the same account.");
         }
 
-        Account fromAccount = fromAccountOpt.get();
-        Account toAccount = toAccountOpt.get();
-
         if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient balance in source account.");
+            throw new InsufficientBalanceException("Insufficient balance for transfer.");
         }
 
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
@@ -96,12 +99,12 @@ public class TransactionService {
         accountRepository.save(toAccount);
 
         Transaction transaction = new Transaction();
-        transaction.setType("TRANSFER");
+        transaction.setType(TransactionType.TRANSFER);
         transaction.setAmount(request.getAmount());
         transaction.setSourceAccountId(fromAccount.getId());
         transaction.setTargetAccountId(toAccount.getId());
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setStatus("SUCCESS");
+        transaction.setStatus(TransactionStatus.SUCCESS);
         transaction.setDescription(request.getDescription());
 
         return transactionRepository.save(transaction);

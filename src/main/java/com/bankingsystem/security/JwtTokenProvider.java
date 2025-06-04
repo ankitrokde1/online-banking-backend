@@ -14,6 +14,7 @@ public class JwtTokenProvider {
 
     @Value("${jwt.secret}")
     private String secret;
+
     private Key key;
 
     // Token validity: 24 hours (in milliseconds)
