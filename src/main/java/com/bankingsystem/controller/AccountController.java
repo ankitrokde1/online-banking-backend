@@ -25,8 +25,7 @@ public class AccountController {
     @PostMapping("/create")
     public ResponseEntity<Account> createAccount(
             @RequestParam String accountType,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         String userId = user.getId();
         // String username = user.getUsername();
@@ -45,27 +44,71 @@ public class AccountController {
     }
 
     @GetMapping("/{accountNumber}")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<AccountResponse> getByAccountNumber(@PathVariable String accountNumber, Authentication authentication) throws AccessDeniedException, AccountNotFoundException {
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    public ResponseEntity<AccountResponse> getByAccountNumber(
+            @PathVariable String accountNumber,
+            Authentication authentication
+    ) throws AccessDeniedException, AccountNotFoundException {
         String username = authentication.getName();
-        Account account = accountService.getAccountByIdAndUsername(accountNumber, username);
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        Account account;
+        if (isAdmin) {
+            // Admin can access any account
+            account = accountService.getAccountByNumber(accountNumber)
+                    .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + accountNumber));
+        } else {
+            // Regular users can only access their own accounts
+            account = accountService.getAccountByIdAndUsername(accountNumber, username);
+        }
         AccountResponse response = accountService.mapToResponse(account);
         return ResponseEntity.ok(response);
     }
 
-
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @PutMapping("/deactivate/{accountNumber}")
-    public ResponseEntity<String> deactivateAccount(@PathVariable String accountNumber) throws AccountNotFoundException {
+    public ResponseEntity<String> deactivateAccount(
+            @PathVariable String accountNumber,
+            Authentication authentication
+    ) throws AccountNotFoundException, AccessDeniedException {
+        User user = (User) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        Account account = accountService.getAccountByNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + accountNumber));
+
+        // Only admin or account owner can deactivate
+        if (!isAdmin && !account.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only deactivate your own account.");
+        }
+
         boolean changed = accountService.deactivateAccount(accountNumber);
         return changed
                 ? ResponseEntity.ok("Account deactivated successfully.")
                 : ResponseEntity.ok("Account was already deactivated.");
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @PutMapping("/activate/{accountNumber}")
-    public ResponseEntity<String> activateAccount(@PathVariable String accountNumber) throws AccountNotFoundException {
+    public ResponseEntity<String> activateAccount(
+            @PathVariable String accountNumber,
+            Authentication authentication
+    ) throws AccountNotFoundException, AccessDeniedException {
+        User user = (User) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        Account account = accountService.getAccountByNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + accountNumber));
+
+        // Only admin or account owner can activate
+        if (!isAdmin && !account.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You can only activate your own account.");
+        }
+
         boolean changed = accountService.activateAccount(accountNumber);
         return changed
                 ? ResponseEntity.ok("Account activated successfully.")

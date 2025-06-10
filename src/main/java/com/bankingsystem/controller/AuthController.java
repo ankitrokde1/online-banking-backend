@@ -2,6 +2,7 @@ package com.bankingsystem.controller;
 
 import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
+import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +24,17 @@ public class AuthController {
 
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-    return authService.register(registerRequest);
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.ok("User registered successfully!");
+//        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        return authService.login(loginRequest);
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
+        JwtResponse jwt = authService.authenticate(request);
+        return ResponseEntity.ok(jwt);
     }
 }
 

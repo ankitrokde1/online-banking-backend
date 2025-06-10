@@ -23,11 +23,13 @@ public class UserController {
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+
     public ResponseEntity<UserResponse> getCurrentUser() {
         return ResponseEntity.ok(userService.getCurrentUserWithAccounts());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserById(@PathVariable String id, Authentication authentication) {
         User user = userService.getUserById(id);
         String loggedInUsername = authentication.getName();
@@ -56,11 +58,12 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only update your own account.");
         }
 
-        User updated = userService.updateUser(id, updatedUser);
+        User updated = userService.updateUser(id, updatedUser, authentication);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable String id, Authentication authentication) {
         User user = userService.getUserById(id);
         String loggedInUsername = authentication.getName();

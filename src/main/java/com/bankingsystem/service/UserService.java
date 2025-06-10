@@ -8,6 +8,7 @@ import com.bankingsystem.exception.UserNotFoundException;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -42,45 +43,63 @@ public class UserService {
         User user = getUserById(userId);
         userRepository.delete(user);
     }
-
-    public User updateUser(String userId, User updatedUser) {
+    
+    public User updateUser(String userId, User updatedUser, Authentication authentication) {
         User existingUser = getUserById(userId);
 
-        // Username uniqueness check
+        boolean changed = false;
+
+        // Username uniqueness check and update
         if (updatedUser.getUsername() != null && !updatedUser.getUsername().isBlank()) {
-            userRepository.findByUsernameAndIdNot(updatedUser.getUsername(), userId)
-                    .ifPresent(user -> {
-                        throw new IllegalArgumentException("Username is already taken.");
-                    });
-            existingUser.setUsername(updatedUser.getUsername());
+            if (!updatedUser.getUsername().equals(existingUser.getUsername())) {
+                if (userRepository.findByUsername(updatedUser.getUsername()).isPresent()) {
+                    throw new IllegalArgumentException("Username is already taken.");
+                }
+                existingUser.setUsername(updatedUser.getUsername());
+                changed = true;
+            }
         }
 
-        // Email uniqueness check
+        // Email uniqueness check and update
         if (updatedUser.getEmail() != null && !updatedUser.getEmail().isBlank()) {
-            userRepository.findByEmailAndIdNot(updatedUser.getEmail(), userId)
-                    .ifPresent(user -> {
-                        throw new IllegalArgumentException("Email is already in use.");
-                    });
-            existingUser.setEmail(updatedUser.getEmail());
+            if (!updatedUser.getEmail().equals(existingUser.getEmail())) {
+                if (userRepository.existsByEmail(updatedUser.getEmail())) {
+                    throw new IllegalArgumentException("Email is already in use.");
+                }
+                existingUser.setEmail(updatedUser.getEmail());
+                changed = true;
+            }
         }
 
-        // Allow role update only if explicitly set
-        if (updatedUser.getRole() != null) {
-            existingUser.setRole(updatedUser.getRole());
-        }
-
-        // Handle password update securely
+        // Password update
         if (updatedUser.getPassword() != null && !updatedUser.getPassword().isBlank()) {
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+            if (!passwordEncoder.matches(updatedUser.getPassword(), existingUser.getPassword())) {
+                existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+                changed = true;
+            }
+        }
+
+        // Role update (if allowed)
+        if (updatedUser.getRole() != null && !updatedUser.getRole().equals(existingUser.getRole())) {
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            if (updatedUser.getRole().name().equals("ADMIN") && !isAdmin) {
+                throw new IllegalArgumentException("Only admin users can assign ADMIN role.");
+            }
+            existingUser.setRole(updatedUser.getRole());
+            changed = true;
+        }
+
+        if (!changed) {
+            throw new IllegalArgumentException(
+                    "No changes detected. Please provide at least one different value to update.");
         }
 
         return userRepository.save(existingUser);
     }
 
-
     public UserResponse getCurrentUserWithAccounts() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
 
         if (username == null || username.isBlank()) {
             throw new UserNotFoundException("No authenticated user found.");
@@ -88,7 +107,6 @@ public class UserService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-
 
         List<Account> accounts = accountRepository.findByUserId(user.getId());
         List<AccountResponse> accountResponses = accounts.stream()
@@ -101,8 +119,7 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getCreatedAt(),
-                accountResponses
-        );
+                accountResponses);
     }
 
 }

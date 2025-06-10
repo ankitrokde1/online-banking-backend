@@ -13,8 +13,10 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     boolean existsByEmail(String email);
 
-    // New methods for uniqueness check excluding the current user
     Optional<User> findByUsernameAndIdNot(String username, String excludedUserId);
 
     Optional<User> findByEmailAndIdNot(String email, String excludedUserId);
+
+    Optional<User> findByEmail(String email);
+
 }

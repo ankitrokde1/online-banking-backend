@@ -7,8 +7,8 @@ import lombok.Data;
 @Data
 public class LoginRequest {
 
-    @NotBlank(message = "Username is mandatory")
-    private String username;
+    @NotBlank(message = "Username or email is mandatory")
+    private String usernameOrEmail;
 
     @NotBlank(message = "Password is mandatory")
     private String password;

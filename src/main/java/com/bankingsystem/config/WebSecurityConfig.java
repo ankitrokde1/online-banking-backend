@@ -1,6 +1,7 @@
 package com.bankingsystem.config;
 
 
+import com.bankingsystem.security.CustomAuthenticationEntryPoint;
 import com.bankingsystem.security.JwtAuthenticationFilter;
 import com.bankingsystem.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +28,15 @@ public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()

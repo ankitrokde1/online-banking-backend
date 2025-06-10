@@ -3,12 +3,12 @@ package com.bankingsystem.controller;
 import com.bankingsystem.dto.request.TransactionRequest;
 import com.bankingsystem.dto.response.TransactionResponse;
 import com.bankingsystem.entity.Transaction;
+import com.bankingsystem.exception.AccountNotFoundException;
 import com.bankingsystem.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,17 +48,29 @@ public class TransactionController {
 
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @GetMapping("/{accountId}")
-    public ResponseEntity<?> getAllForAccount(@PathVariable String accountId , Authentication authentication) {
+    public ResponseEntity<?> getAllForAccount(@PathVariable String accountId, Authentication authentication) {
         String username = authentication.getName();
-        if (!transactionService.isAccountOwnedByUser(accountId, username)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied.");
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // 1. Check if account exists
+        if (!transactionService.accountExists(accountId)) {
+            throw new AccountNotFoundException("Account not found with id: " + accountId);
         }
+
+        // 2. If not admin, check ownership
+        if (!isAdmin && !transactionService.isAccountOwnedByUser(accountId, username)) {
+            throw new AccessDeniedException("Access denied. You can only view your own account transactions.");
+        }
+
         List<Transaction> transactions = transactionService.getTransactionsForAccount(accountId);
         List<TransactionResponse> responses = transactions.stream()
                 .map(this::mapToResponse)
                 .toList();
         return ResponseEntity.ok(responses);
     }
+
+
 
 
     // Mapper method

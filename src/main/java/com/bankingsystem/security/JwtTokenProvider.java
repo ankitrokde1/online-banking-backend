@@ -17,8 +17,9 @@ public class JwtTokenProvider {
 
     private Key key;
 
-    // Token validity: 24 hours (in milliseconds)
-    private final long validityInMilliseconds = 24 * 60 * 60 * 1000;
+    // Token validity: 15 minutes (900,000 milliseconds)
+    private final long validityInMilliseconds = 50 * 60 * 1000;
+
 
 
     @PostConstruct

@@ -25,11 +25,20 @@ public class AccountService {
     private final AccountRepository accountRepository;
 
     public Account createAccount(String userId, String accountType) {
+        AccountType type;
+        try {
+            type = AccountType.valueOf(accountType);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                    "Invalid account type '" + accountType + "'. Allowed types are: " +
+                            java.util.Arrays.toString(AccountType.values()));
+        }
+
         Account account = Account.builder()
                 .userId(userId)
-                .accountNumber(AccountNumberGenerator.generate())  // Utility class
+                .accountNumber(AccountNumberGenerator.generate())
                 .balance(BigDecimal.ZERO)
-                .accountType(AccountType.valueOf(accountType))
+                .accountType(type)
                 .active(true)
                 .openedAt(LocalDateTime.now())
                 .build();
@@ -37,9 +46,14 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public List<Account> getAccountsByUserId(String userId) {
-        return accountRepository.findByUserId(userId);
+   public List<Account> getAccountsByUserId(String userId) {
+    // Check if user exists
+    if (!userRepository.existsById(userId)) {
+        throw new UserNotFoundException("User not found with id: " + userId);
     }
+    // Return accounts (empty list if none)
+    return accountRepository.findByUserId(userId);
+}
 
     public Optional<Account> getAccountByNumber(String accountNumber) {
         return accountRepository.findByAccountNumber(accountNumber);
@@ -48,7 +62,8 @@ public class AccountService {
     public boolean deactivateAccount(String accountNumber) throws AccountNotFoundException {
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(account -> {
-                    if (!account.isActive()) return false; // Already inactive
+                    if (!account.isActive())
+                        return false; // Already inactive
                     account.setActive(false);
                     accountRepository.save(account);
                     return true;
@@ -59,7 +74,8 @@ public class AccountService {
     public boolean activateAccount(String accountNumber) throws AccountNotFoundException {
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(account -> {
-                    if (account.isActive()) return false; // Already active
+                    if (account.isActive())
+                        return false; // Already active
                     account.setActive(true);
                     accountRepository.save(account);
                     return true;
@@ -68,10 +84,11 @@ public class AccountService {
     }
 
     public AccountResponse mapToResponse(Account account) {
-    return AccountResponse.fromAccount(account);
+        return AccountResponse.fromAccount(account);
     }
 
-    public Account getAccountByIdAndUsername(String accountNumber, String username) throws AccountNotFoundException, AccessDeniedException {
+    public Account getAccountByIdAndUsername(String accountNumber, String username)
+            throws AccountNotFoundException, AccessDeniedException {
         // Find user by username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
