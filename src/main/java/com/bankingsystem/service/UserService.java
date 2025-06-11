@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -108,6 +107,11 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
+        return mapToUserResponse(user); // ✅ reuse the mapper
+    }
+
+
+    public UserResponse mapToUserResponse(User user) {
         List<Account> accounts = accountRepository.findByUserId(user.getId());
         List<AccountResponse> accountResponses = accounts.stream()
                 .map(AccountResponse::fromAccount)
@@ -121,5 +125,4 @@ public class UserService {
                 user.getCreatedAt(),
                 accountResponses);
     }
-
 }

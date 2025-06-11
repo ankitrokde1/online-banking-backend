@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +23,7 @@ public class AccountService {
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
 
-    public Account createAccount(String userId, String accountType) {
+    public AccountResponse createAccount(String userId, String accountType) {
         AccountType type;
         try {
             type = AccountType.valueOf(accountType);
@@ -43,7 +42,9 @@ public class AccountService {
                 .openedAt(LocalDateTime.now())
                 .build();
 
-        return accountRepository.save(account);
+        Account saved =  accountRepository.save(account);
+        return mapToResponse(saved);
+
     }
 
    public List<Account> getAccountsByUserId(String userId) {
@@ -55,9 +56,10 @@ public class AccountService {
     return accountRepository.findByUserId(userId);
 }
 
-    public Optional<Account> getAccountByNumber(String accountNumber) {
-        return accountRepository.findByAccountNumber(accountNumber);
-    }
+public Account getAccountByNumber(String accountNumber) {
+    return accountRepository.findByAccountNumber(accountNumber)
+            .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + accountNumber));
+}
 
     public boolean deactivateAccount(String accountNumber) throws AccountNotFoundException {
         return accountRepository.findByAccountNumber(accountNumber)
@@ -104,5 +106,20 @@ public class AccountService {
 
         return account;
     }
+
+    public void verifyOwnershipOrAdmin(Account account, User user, boolean isAdmin) throws AccessDeniedException {
+        if (!isAdmin && !account.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You do not have permission to access this account.");
+        }
+    }
+
+
+    public Account getAuthorizedAccount(String accountNumber, User user, boolean isAdmin) throws AccountNotFoundException, AccessDeniedException {
+        Account account = getAccountByNumber(accountNumber);
+        
+        verifyOwnershipOrAdmin(account, user, isAdmin);
+        return account;
+    }
+    
 }
 

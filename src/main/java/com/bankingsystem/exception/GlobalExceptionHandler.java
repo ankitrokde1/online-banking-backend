@@ -1,6 +1,7 @@
 package com.bankingsystem.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -32,6 +33,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountNotFoundException.class)
     public ResponseEntity<Object> handleAccountNotFound(AccountNotFoundException ex, WebRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Object> handleDataAccessException(DataAccessException ex, WebRequest request) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Database error occurred. Please try again later.", request);
     }
 
     @ExceptionHandler(InsufficientBalanceException.class)
@@ -137,6 +143,11 @@ public class GlobalExceptionHandler {
             msg = String.format("Invalid value '%s' for field '%s'.", invalidValue, fieldName);
         }
         return buildResponse(HttpStatus.BAD_REQUEST, msg, request);
+    }
+
+    @ExceptionHandler(InactiveAccountException.class)
+    public ResponseEntity<Object> handleInactiveAccountException(InactiveAccountException ex, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
 }

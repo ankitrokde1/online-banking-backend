@@ -6,12 +6,16 @@ import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Validated
 public class AuthController {
 
     private final AuthService authService;
@@ -26,8 +30,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok("User registered successfully!");
-//        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
+        // return ResponseEntity.ok("User registered successfully!");
+       return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
 
 

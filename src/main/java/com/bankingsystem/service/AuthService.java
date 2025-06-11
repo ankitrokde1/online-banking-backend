@@ -6,14 +6,13 @@ import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.entity.enums.UserRole;
 import com.bankingsystem.exception.InvalidCredentialsException;
-import com.bankingsystem.exception.InvalidUserRoleException;
 import com.bankingsystem.exception.UserAlreadyExistsException;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import static com.bankingsystem.util.RoleUtils.parseUserRole;
 import java.time.LocalDateTime;
 
 @Service
@@ -38,7 +37,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setCreatedAt(LocalDateTime.now());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole() != null ? parseUserRole(String.valueOf(request.getRole())) : UserRole.CUSTOMER);
+        user.setRole(request.getRole() != null ? parseUserRole(request.getRole().toString()) : UserRole.CUSTOMER);
         userRepository.save(user);
     }
 
@@ -57,11 +56,11 @@ public class AuthService {
         return new JwtResponse(token, "Bearer", user.getUsername(), user.getRole());
     }
 
-    public UserRole parseUserRole(String input) {
-        try {
-            return UserRole.valueOf(input.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidUserRoleException("Invalid role: " + input + ". Allowed roles: CUSTOMER, ADMIN.");
-        }
-    }
+    // public UserRole parseUserRole(String input) {
+    //     try {
+    //         return UserRole.valueOf(input.toUpperCase());
+    //     } catch (IllegalArgumentException ex) {
+    //         throw new InvalidUserRoleException("Invalid role: " + input + ". Allowed roles: CUSTOMER, ADMIN.");
+    //     }
+    // }
 }

@@ -1,6 +1,4 @@
 package com.bankingsystem.dto.request;
-
-import com.bankingsystem.entity.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,5 +19,5 @@ public class RegisterRequest {
     @Size(min = 5, max = 40)
     private String password;
 
-    private UserRole role;
+    private String role;
 }

@@ -3,19 +3,24 @@ package com.bankingsystem.controller;
 import com.bankingsystem.dto.response.UserResponse;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.service.UserService;
+import com.bankingsystem.util.AuthUtils;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Validated
 public class UserController {
 
     private final UserService userService;
@@ -23,7 +28,6 @@ public class UserController {
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-
     public ResponseEntity<UserResponse> getCurrentUser() {
         return ResponseEntity.ok(userService.getCurrentUserWithAccounts());
     }
@@ -32,49 +36,51 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserById(@PathVariable String id, Authentication authentication) {
         User user = userService.getUserById(id);
-        String loggedInUsername = authentication.getName();
-
-        if (!user.getUsername().equals(loggedInUsername) &&
-                authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only access your own data.");
+        
+        if (!AuthUtils.isOwnerOrAdmin(user, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Access denied: You can only access your own data."));
         }
-
-        return ResponseEntity.ok(user);
+        UserResponse response = userService.mapToUserResponse(user);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        List<UserResponse> responses = users.stream()
+                .map(userService::mapToUserResponse)
+                .toList();
+        return ResponseEntity.ok(responses);
     }
+    
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable String id, @Valid @RequestBody User updatedUser, Authentication authentication) {
         User existingUser = userService.getUserById(id);
-        String loggedInUsername = authentication.getName();
-
-        if (!existingUser.getUsername().equals(loggedInUsername) &&
-                authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only update your own account.");
+        
+        if (!AuthUtils.isOwnerOrAdmin(existingUser, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Access denied: You can only access your own data."));
         }
 
         User updated = userService.updateUser(id, updatedUser, authentication);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(userService.mapToUserResponse(updated)); 
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable String id, Authentication authentication) {
         User user = userService.getUserById(id);
-        String loggedInUsername = authentication.getName();
-
-        if (!user.getUsername().equals(loggedInUsername) &&
-                authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only delete your own account.");
+        
+        if (!AuthUtils.isOwnerOrAdmin(user, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Access denied: You can only access your own data."));
         }
 
         userService.deleteUser(id);
-        return ResponseEntity.ok("User deleted successfully.");
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully."));
     }
 }
 
