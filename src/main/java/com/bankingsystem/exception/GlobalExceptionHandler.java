@@ -150,4 +150,25 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(ResetTokenInvalidException.class)
+    public ResponseEntity<Object> handleResetTokenInvalid(ResetTokenInvalidException ex, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ResetTokenExpiredException.class)
+    public ResponseEntity<Object> handleResetTokenExpired(ResetTokenExpiredException ex, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(EmailSendFailedException.class)
+    public ResponseEntity<Object> handleEmailSendFailure(EmailSendFailedException ex, WebRequest request) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send email: " + ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(PasswordResetException.class)
+    public ResponseEntity<Object> handlePasswordReset(PasswordResetException ex, WebRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+
 }

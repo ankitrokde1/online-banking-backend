@@ -1,7 +1,9 @@
 package com.bankingsystem.controller;
 
+import com.bankingsystem.dto.request.ForgotPasswordRequest;
 import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
+import com.bankingsystem.dto.request.ResetPasswordRequest;
 import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.service.AuthService;
 import jakarta.validation.Valid;
@@ -11,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,5 +44,18 @@ public class AuthController {
         JwtResponse jwt = authService.authenticate(request);
         return ResponseEntity.ok(jwt);
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getUsernameOrEmail());
+        return ResponseEntity.ok(Map.of("message", "Reset link sent to your email."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Password reset successfully."));
+    }
+
 }
 

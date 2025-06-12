@@ -3,9 +3,22 @@ spring:
     mongodb:
       uri: mongodb+srv://ankitrockde783:Pass%40201003@cluster1.b6cry.mongodb.net/online_banking_db?retryWrites=true&w=majority&appName=Cluster1
       database: online_banking_db
+
   devtools:
     restart:
       enabled: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ankytofficial1@gmail.com
+    password: fojo shnz rgig svca
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
@@ -14,5 +27,4 @@ jwt:
   secret: uzl4KZyU4pY5TWtaGlzhUcJPKVQ1tS0kfItejc0UAzYKN4P1X65exKO/Vjd/E+Wfh/rJDBJOXhlfjoYhxBdC+g==
 
 frontend:
-  url: https://localhost:5173
-
+  url: http://localhost:5173

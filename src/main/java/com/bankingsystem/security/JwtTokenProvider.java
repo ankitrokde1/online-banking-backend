@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 
 @Component
@@ -35,6 +36,22 @@ public class JwtTokenProvider {
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(validity)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+
+    public String generateToken(String username, String role, Duration expiryDuration) {
+        Claims claims = Jwts.claims().setSubject(username);
+        claims.put("role", role);
+
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + expiryDuration.toMillis());
 
         return Jwts.builder()
                 .setClaims(claims)
