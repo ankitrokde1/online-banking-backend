@@ -3,22 +3,21 @@ package com.bankingsystem.service;
 import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
 import com.bankingsystem.dto.response.JwtResponse;
+import com.bankingsystem.entity.PasswordResetToken;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.entity.enums.UserRole;
-import com.bankingsystem.exception.EmailSendFailedException;
-import com.bankingsystem.exception.InvalidCredentialsException;
-import com.bankingsystem.exception.ResetTokenInvalidException;
-import com.bankingsystem.exception.UserAlreadyExistsException;
-import com.bankingsystem.exception.UserNotFoundException;
+import com.bankingsystem.exception.*;
+import com.bankingsystem.repository.PasswordResetTokenRepository;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import static com.bankingsystem.util.RoleUtils.parseUserRole;
-
-import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final MailService mailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     public void register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -62,32 +62,49 @@ public class AuthService {
         return new JwtResponse(token, "Bearer", user.getUsername(), user.getRole());
     }
 
-    public void forgotPassword(String usernameOrEmail) {
-        User user = userRepository.findByUsername(usernameOrEmail)
-                .or(() -> userRepository.findByEmail(usernameOrEmail))
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+public void forgotPassword(String usernameOrEmail) {
+    User user = userRepository.findByUsername(usernameOrEmail)
+            .or(() -> userRepository.findByEmail(usernameOrEmail))
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole().name(), Duration.ofMinutes(15));
+    // Delete previous token
+    passwordResetTokenRepository.deleteByUserId(user.getId());
 
-        try {
-            mailService.sendPasswordResetEmail(user.getEmail(), token);
-        } catch (Exception ex) {
-            throw new EmailSendFailedException("Failed to send reset email", ex);
-         }
-    }
+    String rawToken = UUID.randomUUID().toString(); // This goes in the email
+    String hashedToken = passwordEncoder.encode(rawToken); // This goes in DB
 
-    public void resetPassword(String token, String newPassword) {
-        if (!jwtTokenProvider.validateToken(token)) {
-            throw new ResetTokenInvalidException("Invalid or expired token");
+    Date expiryDate = new Date(System.currentTimeMillis() + 30 * 60 * 1000); // 30 min
+
+    PasswordResetToken token = new PasswordResetToken();
+    token.setUserId(user.getId());
+    token.setHashedToken(hashedToken);
+    token.setExpiryDate(expiryDate);
+
+    passwordResetTokenRepository.save(token);
+
+    mailService.sendPasswordResetEmail(user.getEmail(), rawToken);
+}
+
+    public void resetPassword(String rawToken, String newPassword) {
+        List<PasswordResetToken> allTokens = passwordResetTokenRepository.findAll(); // No direct match
+
+        PasswordResetToken matchedToken = allTokens.stream()
+                .filter(t -> passwordEncoder.matches(rawToken, t.getHashedToken()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidTokenException("Invalid or expired token"));
+
+        if (matchedToken.isExpired()) {
+            throw new ResetTokenExpiredException("Token has expired");
         }
-        String username = jwtTokenProvider.getUsername(token);
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(matchedToken.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-       
+
+        // Delete token
+        passwordResetTokenRepository.delete(matchedToken);
     }
 
 }

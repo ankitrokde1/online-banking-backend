@@ -18,7 +18,4 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmailAndIdNot(String email, String excludedUserId);
 
     Optional<User> findByEmail(String email);
-
-    Optional<User> findByResetToken(String token);
-
 }

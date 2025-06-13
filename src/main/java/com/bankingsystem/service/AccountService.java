@@ -99,6 +99,10 @@ public Account getAccountByNumber(String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found with id: " + accountNumber));
 
+        if (!account.isActive()) {
+            throw new AccountNotFoundException("Account is inactive.");
+        }
+
         // Verify that account belongs to user
         if (!account.getUserId().equals(user.getId())) {
             throw new AccessDeniedException("Account does not belong to the user");
@@ -116,7 +120,9 @@ public Account getAccountByNumber(String accountNumber) {
 
     public Account getAuthorizedAccount(String accountNumber, User user, boolean isAdmin) throws AccountNotFoundException, AccessDeniedException {
         Account account = getAccountByNumber(accountNumber);
-        
+        if (!account.isActive()) {
+            throw new AccountNotFoundException("Account is inactive.");
+        }
         verifyOwnershipOrAdmin(account, user, isAdmin);
         return account;
     }

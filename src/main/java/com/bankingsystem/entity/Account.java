@@ -27,5 +27,7 @@ public class Account {
     private AccountType accountType; // e.g., SAVINGS, CURRENT
     private boolean active;
     private LocalDateTime openedAt;
+
+    private String currency = "INR";
 }
 

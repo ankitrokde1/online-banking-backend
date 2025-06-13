@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Data
 public class ResetPasswordRequest {
-    @NotBlank
+    @NotBlank(message = "Token is mandatory")
     private String token;
 
-    @NotBlank
+    @NotBlank(message = "Password is mandatory")
     private String newPassword;
 }
 
