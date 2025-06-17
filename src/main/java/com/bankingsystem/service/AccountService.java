@@ -57,6 +57,7 @@ public class AccountService {
                     .build();
             accountRequestRepository.save(request);
             return AccountResponse.builder()
+                    .id(request.getId())
                     .accountNumber("REQUESTED")
                     .accountType(type)
                     .balance(BigDecimal.ZERO)

@@ -2,11 +2,14 @@ package com.bankingsystem.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -195,6 +198,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleTransactionNotFound(TransactionNotFoundException ex, WebRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
+        String supportedMethods = ex.getSupportedHttpMethods() != null
+                ? ex.getSupportedHttpMethods().stream().map(HttpMethod::name).toList()
+                .toString().replace("[", "").replace("]", "")
+                : "N/A";
+
+        String message = "Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods are: " + supportedMethods;
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
+    }
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, WebRequest request) {
+        String paramName = ex.getParameterName();
+        String paramType = ex.getParameterType();
+        String message = "Required request parameter '" + paramName + "' of type '" + paramType + "' is missing.";
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+
+
+
+
 
 
 }
