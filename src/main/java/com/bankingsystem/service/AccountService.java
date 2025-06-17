@@ -76,13 +76,17 @@ public Account getAccountByNumber(String accountNumber) {
     public boolean activateAccount(String accountNumber) throws AccountNotFoundException {
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(account -> {
-                    if (account.isActive())
+                    if (isActive(account))
                         return false; // Already active
                     account.setActive(true);
                     accountRepository.save(account);
                     return true;
                 })
                 .orElseThrow(() -> new AccountNotFoundException("Account not found"));
+    }
+
+    private static boolean isActive(Account account) {
+        return account.isActive();
     }
 
     public AccountResponse mapToResponse(Account account) {

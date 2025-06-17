@@ -142,7 +142,7 @@ public class TransactionService {
 
     // ✅ [Helper] Save transaction
     private Transaction saveTransaction(TransactionType type, String sourceId, String targetId,
-            TransactionRequest request) {
+                                        TransactionRequest request) {
         Transaction transaction = new Transaction();
         transaction.setType(type);
         transaction.setAmount(request.getAmount());
@@ -150,10 +150,21 @@ public class TransactionService {
         transaction.setTargetAccountId(targetId);
         transaction.setTimestamp(LocalDateTime.now());
         transaction.setStatus(TransactionStatus.SUCCESS);
-        transaction.setDescription(request.getDescription());
+
+        String description = request.getDescription();
+        if (description == null || description.trim().isEmpty()) {
+            description = switch (type) {
+                case DEPOSIT -> "Amount deposited to account";
+                case WITHDRAW -> "Amount withdrawn from account";
+                case TRANSFER -> "Amount transferred between accounts";
+            };
+        }
+        transaction.setDescription(description);
+
         return transactionRepository.save(transaction);
     }
-    
+
+
     private void validateSufficientBalance(Account account, BigDecimal amount, String operation) {
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientBalanceException("Insufficient balance for " + operation + ".");

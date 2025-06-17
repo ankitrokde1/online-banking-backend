@@ -21,6 +21,7 @@ public class WebConfig {
                         .allowedOrigins(frontendUrl)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
+                        .exposedHeaders("Set-Cookie")
                         .allowCredentials(true);
             }
         };

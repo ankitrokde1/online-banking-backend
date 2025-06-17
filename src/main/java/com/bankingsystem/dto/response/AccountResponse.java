@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class AccountResponse {
 
+    private String id;
     private String accountNumber;      // Masked in getter
     private AccountType accountType;
     private BigDecimal balance;
@@ -24,6 +25,7 @@ public class AccountResponse {
 
     public static AccountResponse fromAccount(Account account) {
         return new AccountResponse(
+                account.getId(),
                 account.getAccountNumber(),
                 account.getAccountType(),
                 account.getBalance(),

@@ -5,12 +5,20 @@ import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
 import com.bankingsystem.dto.request.ResetPasswordRequest;
 import com.bankingsystem.dto.response.JwtResponse;
+import com.bankingsystem.exception.InvalidCredentialsException;
+import com.bankingsystem.security.JwtTokenProvider;
 import com.bankingsystem.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,10 +31,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
 
     @GetMapping("/health-check")
-    public ResponseEntity<String> health()
-    {
+    public ResponseEntity<String> health() {
         return ResponseEntity.ok("Application Running...");
     }
 
@@ -35,15 +44,9 @@ public class AuthController {
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         // return ResponseEntity.ok("User registered successfully!");
-       return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
+        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
 
-
-    @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
-        JwtResponse jwt = authService.authenticate(request);
-        return ResponseEntity.ok(jwt);
-    }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
@@ -55,6 +58,31 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password reset successfully."));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsernameOrEmail(), request.getPassword()));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            JwtResponse jwtResponse = authService.authenticateAndGenerateToken(authentication);
+
+            jwtTokenProvider.addJwtToCookie(response, jwtResponse.getToken());
+
+            return ResponseEntity.ok(jwtResponse); // include token + username + role in response
+        } catch (BadCredentialsException ex) {
+            throw new InvalidCredentialsException("Invalid username or password");
+        }
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        jwtTokenProvider.clearJwtCookie(response);
+        return ResponseEntity.ok("Logged out successfully");
     }
 
 }

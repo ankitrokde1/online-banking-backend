@@ -74,7 +74,8 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         boolean isAdmin = isAdmin(authentication);
 
-        accountService.getAuthorizedAccount(accountNumber, user, isAdmin);
+        Account account = accountService.getAccountByNumber(accountNumber);
+        accountService.verifyOwnershipOrAdmin(account, user, isAdmin);
 
         boolean changed = accountService.deactivateAccount(accountNumber);
         return changed
@@ -83,17 +84,22 @@ public class AccountController {
     }
 
 
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @PutMapping("/activate/{accountNumber}")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<?> activateAccount(
             @PathVariable String accountNumber,
             Authentication authentication
     ) throws AccountNotFoundException, AccessDeniedException {
+
         User user = (User) authentication.getPrincipal();
         boolean isAdmin = isAdmin(authentication);
 
-       accountService.getAuthorizedAccount(accountNumber, user, isAdmin);
-                
+        // ✅ Fetch an account without checking `active` status
+        Account account = accountService.getAccountByNumber(accountNumber);
+
+        // ✅ Check ownership/admin AFTER fetching
+        accountService.verifyOwnershipOrAdmin(account, user, isAdmin);
+
         boolean changed = accountService.activateAccount(accountNumber);
         return changed
                 ? ResponseEntity.ok(Map.of("message", "Account activated successfully."))

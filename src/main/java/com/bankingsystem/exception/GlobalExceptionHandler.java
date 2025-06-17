@@ -5,9 +5,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,21 +87,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
         Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException) {
-            InvalidFormatException ife = (InvalidFormatException) cause;
+        if (cause instanceof InvalidFormatException ife) {
             String fieldName = ife.getPath().isEmpty() ? "unknown" : ife.getPath().get(0).getFieldName();
             String invalidValue = ife.getValue() != null ? ife.getValue().toString() : "null";
             String msg;
 
             if ("role".equals(fieldName)) {
-                msg = String.format("Invalid value '%s' for field '%s'. Allowed roles are: CUSTOMER, ADMIN.",
+                msg = "Invalid value '%s' for field '%s'. Allowed roles are: CUSTOMER, ADMIN.".formatted(
                         invalidValue, fieldName);
             } else if ("amount".equals(fieldName)) {
-                msg = String.format(
-                        "Invalid value '%s' for field '%s'. Please provide a valid numeric amount (e.g., 1000.00).",
+                msg = "Invalid value '%s' for field '%s'. Please provide a valid numeric amount (e.g., 1000.00).".formatted(
                         invalidValue, fieldName);
             } else {
-                msg = String.format("Invalid value '%s' for field '%s'.", invalidValue, fieldName);
+                msg = "Invalid value '%s' for field '%s'.".formatted(invalidValue, fieldName);
             }
             return buildResponse(HttpStatus.BAD_REQUEST, msg, request);
         }
@@ -133,14 +135,13 @@ public class GlobalExceptionHandler {
         String msg;
 
         if ("role".equals(fieldName)) {
-            msg = String.format("Invalid value '%s' for field '%s'. Allowed roles are: CUSTOMER, ADMIN.", invalidValue,
+            msg = "Invalid value '%s' for field '%s'. Allowed roles are: CUSTOMER, ADMIN.".formatted(invalidValue,
                     fieldName);
         } else if ("amount".equals(fieldName)) {
-            msg = String.format(
-                    "Invalid value '%s' for field '%s'. Please provide a valid numeric amount (e.g., 1000.00).",
+            msg = "Invalid value '%s' for field '%s'. Please provide a valid numeric amount (e.g., 1000.00).".formatted(
                     invalidValue, fieldName);
         } else {
-            msg = String.format("Invalid value '%s' for field '%s'.", invalidValue, fieldName);
+            msg = "Invalid value '%s' for field '%s'.".formatted(invalidValue, fieldName);
         }
         return buildResponse(HttpStatus.BAD_REQUEST, msg, request);
     }
@@ -170,5 +171,24 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<Object> handleInvalidTokenException(InvalidTokenException ex, WebRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Object> handleNoResourceFound(NoResourceFoundException ex, WebRequest request) {
+        String message = "The requested resource was not found.";
+        return buildResponse(HttpStatus.NOT_FOUND, message, request);
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<Object> handleNoHandlerFound(org.springframework.web.servlet.NoHandlerFoundException ex, WebRequest request) {
+        String message = "No handler found for " + ex.getHttpMethod() + " " + ex.getRequestURL();
+        return buildResponse(HttpStatus.NOT_FOUND, message, request);
+    }
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED,  ex.getMessage() , request);
+    }
 
 }

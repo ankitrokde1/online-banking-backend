@@ -1,6 +1,4 @@
 package com.bankingsystem.service;
-
-import com.bankingsystem.dto.request.LoginRequest;
 import com.bankingsystem.dto.request.RegisterRequest;
 import com.bankingsystem.dto.response.JwtResponse;
 import com.bankingsystem.entity.PasswordResetToken;
@@ -11,6 +9,7 @@ import com.bankingsystem.repository.PasswordResetTokenRepository;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import static com.bankingsystem.util.RoleUtils.parseUserRole;
@@ -49,15 +48,9 @@ public class AuthService {
 
     // login method
 
-    public JwtResponse authenticate(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsernameOrEmail())
-                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid username/email or password."));
-    
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Invalid username/email or password.");
-        }
-    
+    public JwtResponse authenticateAndGenerateToken(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+
         String token = jwtTokenProvider.generateToken(user.getUsername(), user.getRole().name());
         return new JwtResponse(token, "Bearer", user.getUsername(), user.getRole());
     }
