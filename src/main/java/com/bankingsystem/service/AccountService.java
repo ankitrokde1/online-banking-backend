@@ -2,10 +2,13 @@ package com.bankingsystem.service;
 
 import com.bankingsystem.dto.response.AccountResponse;
 import com.bankingsystem.entity.Account;
+import com.bankingsystem.entity.AccountRequest;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.entity.enums.AccountType;
+import com.bankingsystem.entity.enums.RequestStatus;
 import com.bankingsystem.exception.UserNotFoundException;
 import com.bankingsystem.repository.AccountRepository;
+import com.bankingsystem.repository.AccountRequestRepository;
 import com.bankingsystem.repository.UserRepository;
 import com.bankingsystem.util.AccountNumberGenerator;
 import com.bankingsystem.exception.AccountNotFoundException;
@@ -22,29 +25,77 @@ public class AccountService {
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
+    private final AccountRequestRepository accountRequestRepository;
 
-    public AccountResponse createAccount(String userId, String accountType) {
+
+    public AccountResponse createAccount(String userId, String accountType, boolean isAdmin) {
         AccountType type;
         try {
-            type = AccountType.valueOf(accountType);
+            type = AccountType.valueOf(accountType.toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(
-                    "Invalid account type '" + accountType + "'. Allowed types are: " +
-                            java.util.Arrays.toString(AccountType.values()));
+            throw new IllegalArgumentException("Invalid account type: " + accountType);
         }
 
-        Account account = Account.builder()
-                .userId(userId)
-                .accountNumber(AccountNumberGenerator.generate())
-                .balance(BigDecimal.ZERO)
-                .accountType(type)
-                .active(true)
-                .openedAt(LocalDateTime.now())
-                .build();
+        if (isAdmin) {
+            // Create directly
+            Account account = Account.builder()
+                    .userId(userId)
+                    .accountNumber(AccountNumberGenerator.generate())
+                    .balance(BigDecimal.ZERO)
+                    .accountType(type)
+                    .active(true)
+                    .openedAt(LocalDateTime.now())
+                    .build();
+            return mapToResponse(accountRepository.save(account));
+        } else {
+            // Save as a request
+            AccountRequest request = AccountRequest.builder()
+                    .userId(userId)
+                    .accountType(type)
+                    .requestedAt(LocalDateTime.now())
+                    .status(RequestStatus.PENDING)
+                    .build();
+            accountRequestRepository.save(request);
+            return AccountResponse.builder()
+                    .accountNumber("REQUESTED")
+                    .accountType(type)
+                    .balance(BigDecimal.ZERO)
+                    .isActive(false)
+                    .openAt(null)
+                    .build();
+        }
+    }
 
-        Account saved =  accountRepository.save(account);
-        return mapToResponse(saved);
+    public List<AccountRequest> getPendingAccountRequests() {
+        return accountRequestRepository.findByStatus(RequestStatus.PENDING);
+    }
 
+    public String handleAccountRequest(String requestId, boolean approve) {
+        AccountRequest request = accountRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Account request not found"));
+
+        if (request.getStatus() != RequestStatus.PENDING) {
+            return "Request already processed.";
+        }
+
+        if (approve) {
+            // Create account
+            Account account = Account.builder()
+                    .userId(request.getUserId())
+                    .accountNumber(AccountNumberGenerator.generate())
+                    .balance(BigDecimal.ZERO)
+                    .accountType(request.getAccountType())
+                    .active(true)
+                    .openedAt(LocalDateTime.now())
+                    .build();
+            accountRepository.save(account);
+            request.setStatus(RequestStatus.APPROVED);
+        } else {
+            request.setStatus(RequestStatus.REJECTED);
+        }
+
+        accountRequestRepository.save(request);
+        return "Request " + request.getStatus().name().toLowerCase() + " successfully.";
     }
 
    public List<Account> getAccountsByUserId(String userId) {

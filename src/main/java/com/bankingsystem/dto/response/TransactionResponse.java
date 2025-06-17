@@ -1,5 +1,6 @@
 package com.bankingsystem.dto.response;
 
+import com.bankingsystem.entity.enums.TransactionStatus;
 import com.bankingsystem.entity.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class TransactionResponse {
     private String toAccountId; // null for deposit/withdraw
     private BigDecimal amount;
     private TransactionType type; // "DEPOSIT", "WITHDRAW", "TRANSFER"
+    private TransactionStatus status;
     private LocalDateTime timestamp;
 }
 

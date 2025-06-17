@@ -47,7 +47,6 @@ public class AuthService {
     }
 
     // login method
-
     public JwtResponse authenticateAndGenerateToken(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
 

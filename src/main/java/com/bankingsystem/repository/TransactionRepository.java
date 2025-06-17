@@ -1,6 +1,7 @@
 package com.bankingsystem.repository;
 
 import com.bankingsystem.entity.Transaction;
+import com.bankingsystem.entity.enums.TransactionStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,4 +11,6 @@ import java.util.List;
 public interface TransactionRepository extends MongoRepository<Transaction, String> {
 
     List<Transaction> findBySourceAccountIdOrTargetAccountId(String sourceAccountId, String targetAccountId);
+    List<Transaction> findByStatus(TransactionStatus status);
+
 }

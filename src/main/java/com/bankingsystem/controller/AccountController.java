@@ -2,6 +2,7 @@ package com.bankingsystem.controller;
 
 import com.bankingsystem.dto.response.AccountResponse;
 import com.bankingsystem.entity.Account;
+import com.bankingsystem.entity.AccountRequest;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.exception.AccountNotFoundException;
 import com.bankingsystem.service.AccountService;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import static com.bankingsystem.util.AuthUtils.isAdmin;
@@ -25,15 +27,30 @@ public class AccountController {
 
     private final AccountService accountService;
 
-    // Create a new account (User or Admin)
     @PostMapping("/create")
     public ResponseEntity<AccountResponse> createAccount(
             @RequestParam String accountType,
             Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        String userId = user.getId();
-        AccountResponse created = accountService.createAccount(userId, accountType);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        AccountResponse response = accountService.createAccount(user.getId(), accountType, isAdmin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ADMIN: View all account requests
+    @GetMapping("/requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AccountRequest>> getAccountRequests() {
+        return ResponseEntity.ok(accountService.getPendingAccountRequests());
+    }
+
+    @PutMapping("/requests/{requestId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> processAccountRequest(
+            @PathVariable String requestId,
+            @RequestParam boolean approve) {
+        String result = accountService.handleAccountRequest(requestId, approve);
+        return ResponseEntity.ok(Map.of("message", result));
     }
 
     // Get all accounts for authenticated user
@@ -94,10 +111,8 @@ public class AccountController {
         User user = (User) authentication.getPrincipal();
         boolean isAdmin = isAdmin(authentication);
 
-        // ✅ Fetch an account without checking `active` status
         Account account = accountService.getAccountByNumber(accountNumber);
 
-        // ✅ Check ownership/admin AFTER fetching
         accountService.verifyOwnershipOrAdmin(account, user, isAdmin);
 
         boolean changed = accountService.activateAccount(accountNumber);

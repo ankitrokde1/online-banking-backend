@@ -191,4 +191,10 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED,  ex.getMessage() , request);
     }
 
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ResponseEntity<Object> handleTransactionNotFound(TransactionNotFoundException ex, WebRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+
 }

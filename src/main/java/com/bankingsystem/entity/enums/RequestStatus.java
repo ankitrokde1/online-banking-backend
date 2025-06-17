@@ -1,8 +1,8 @@
 package com.bankingsystem.entity.enums;
 
-public enum TransactionStatus {
+public enum RequestStatus {
     PENDING,
     APPROVED,
-    REJECTED,
-    SUCCESS
+    REJECTED
 }
+

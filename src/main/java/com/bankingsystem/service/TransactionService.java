@@ -6,10 +6,7 @@ import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.Transaction;
 import com.bankingsystem.entity.enums.TransactionStatus;
 import com.bankingsystem.entity.enums.TransactionType;
-import com.bankingsystem.exception.AccountNotFoundException;
-import com.bankingsystem.exception.InactiveAccountException;
-import com.bankingsystem.exception.InsufficientBalanceException;
-import com.bankingsystem.exception.InvalidTransferException;
+import com.bankingsystem.exception.*;
 import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.TransactionRepository;
 import com.bankingsystem.repository.UserRepository;
@@ -32,35 +29,89 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
 
     @Transactional
-    public Transaction deposit(TransactionRequest request) {
-       
+    public Transaction requestDeposit(TransactionRequest request, Authentication auth) {
         validateAmount(request.getAmount(), "Deposit");
         Account account = getAccountById(request.getTargetAccountId(), "Target");
         ensureAccountIsActive(account, "Target");
-        account.setBalance(account.getBalance().add(request.getAmount()));
-        accountRepository.save(account);
 
-        return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request);
+        if (isAdmin(auth)) {
+            account.setBalance(account.getBalance().add(request.getAmount()));
+            accountRepository.save(account);
+            return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request, TransactionStatus.SUCCESS);
+        }
+
+        return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request, TransactionStatus.PENDING);
     }
 
-    
+
     @Transactional
-    public Transaction withdraw(TransactionRequest request) {
-       
+    public Transaction requestWithdraw(TransactionRequest request, Authentication auth) {
         validateAmount(request.getAmount(), "Withdraw");
         Account account = getAccountById(request.getSourceAccountId(), "Source");
         ensureAccountIsActive(account, "Source");
         validateSufficientBalance(account, request.getAmount(), "withdrawal");
-        account.setBalance(account.getBalance().subtract(request.getAmount()));
-        accountRepository.save(account);
 
-        return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request);
+        if (isAdmin(auth)) {
+            account.setBalance(account.getBalance().subtract(request.getAmount()));
+            accountRepository.save(account);
+            return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request, TransactionStatus.SUCCESS);
+        }
+
+        return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request, TransactionStatus.PENDING);
+    }
+
+
+
+    @Transactional
+    public Transaction approveTransaction(String id) {
+        Transaction tx = transactionRepository.findById(id)
+                .orElseThrow(() -> new TransactionNotFoundException("Transaction not found"));
+
+        if (tx.getStatus() != TransactionStatus.PENDING) {
+            throw new IllegalStateException("Only pending transactions can be approved.");
+        }
+
+        if (tx.getType() == TransactionType.DEPOSIT) {
+            Account account = getAccountById(tx.getTargetAccountId(), "Target");
+            account.setBalance(account.getBalance().add(tx.getAmount()));
+            accountRepository.save(account);
+        } else if (tx.getType() == TransactionType.WITHDRAW) {
+            Account account = getAccountById(tx.getSourceAccountId(), "Source");
+            validateSufficientBalance(account, tx.getAmount(), "withdrawal approval");
+            account.setBalance(account.getBalance().subtract(tx.getAmount()));
+            accountRepository.save(account);
+        }
+
+        tx.setStatus(TransactionStatus.SUCCESS);
+        return transactionRepository.save(tx);
     }
 
 
     @Transactional
+    public Transaction rejectTransaction(String id) {
+        Transaction tx = transactionRepository.findById(id)
+                .orElseThrow(() -> new TransactionNotFoundException("Transaction not found"));
+
+        if (tx.getStatus() != TransactionStatus.PENDING) {
+            throw new IllegalStateException("Only pending transactions can be rejected.");
+        }
+
+        tx.setStatus(TransactionStatus.REJECTED);
+        return transactionRepository.save(tx);
+    }
+
+
+    public List<TransactionResponse> getPendingTransactions() {
+        List<Transaction> pending = transactionRepository.findByStatus(TransactionStatus.PENDING);
+        return pending.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+ 
+    @Transactional
     public Transaction transfer(TransactionRequest request) {
-        
+
         validateAmount(request.getAmount(), "Transfer");
         Account fromAccount = getAccountById(request.getSourceAccountId(), "Source");
         Account toAccount = getAccountById(request.getTargetAccountId(), "Target");
@@ -72,7 +123,7 @@ public class TransactionService {
         if (fromAccount.getId().equals(toAccount.getId())) {
             throw new InvalidTransferException("Cannot transfer to the same account.");
         }
-        
+
         validateSufficientBalance(fromAccount, request.getAmount(), "transfer");
 
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
@@ -81,7 +132,7 @@ public class TransactionService {
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        return saveTransaction(TransactionType.TRANSFER, fromAccount.getId(), toAccount.getId(), request);
+        return saveTransaction(TransactionType.TRANSFER, fromAccount.getId(), toAccount.getId(), request, TransactionStatus.SUCCESS);
     }
 
     public List<Transaction> getTransactionsForAccountWithAuthorization(String accountId, Authentication auth) {
@@ -115,7 +166,6 @@ public class TransactionService {
     }
 
 
-
     // Mapper method
     public TransactionResponse mapToResponse(Transaction tx) {
         return new TransactionResponse(
@@ -124,9 +174,10 @@ public class TransactionService {
                 tx.getTargetAccountId(), // toAccountId
                 tx.getAmount(),
                 tx.getType(),
+                tx.getStatus(),
                 tx.getTimestamp());
     }
-    
+
     // ✅ [Helper] Validate transaction amount
     private void validateAmount(BigDecimal amount, String operation) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -142,14 +193,14 @@ public class TransactionService {
 
     // ✅ [Helper] Save transaction
     private Transaction saveTransaction(TransactionType type, String sourceId, String targetId,
-                                        TransactionRequest request) {
+                                        TransactionRequest request, TransactionStatus status) {
         Transaction transaction = new Transaction();
         transaction.setType(type);
         transaction.setAmount(request.getAmount());
         transaction.setSourceAccountId(sourceId);
         transaction.setTargetAccountId(targetId);
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.SUCCESS);
+        transaction.setStatus(status);
 
         String description = request.getDescription();
         if (description == null || description.trim().isEmpty()) {
@@ -176,4 +227,11 @@ public class TransactionService {
             throw new InactiveAccountException(label + " account is inactive.");
         }
     }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+
 }

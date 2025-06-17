@@ -3,6 +3,7 @@ package com.bankingsystem.dto.response;
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.enums.AccountType;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class AccountResponse {
 
     private String id;
@@ -24,15 +26,15 @@ public class AccountResponse {
 
 
     public static AccountResponse fromAccount(Account account) {
-        return new AccountResponse(
-                account.getId(),
-                account.getAccountNumber(),
-                account.getAccountType(),
-                account.getBalance(),
-                account.isActive(),
-                account.getOpenedAt(),
-                mask(account.getAccountNumber())
-        );
+        return AccountResponse.builder()
+                .id(account.getId())
+                .accountNumber(account.getAccountNumber())
+                .accountType(account.getAccountType())
+                .balance(account.getBalance())
+                .isActive(account.isActive())
+                .openAt(account.getOpenedAt())
+                .maskedAccountNumber(mask(account.getAccountNumber()))
+                .build();
     }
 
     // Custom Getter to mask the account number (e.g., **** **** **** 1234)
@@ -40,6 +42,7 @@ public class AccountResponse {
         if (number == null || number.length() < 4) return "****";
         return "**** **** **** " + number.substring(number.length() - 4);
     }
+
 
 
 }
