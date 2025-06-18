@@ -30,45 +30,6 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final AccountRequestRepository accountRequestRepository;
 
-    // public AccountResponse createAccount(String userId, String accountType, boolean isAdmin) {
-    //     AccountType type;
-    //     try {
-    //         type = AccountType.valueOf(accountType.toUpperCase());
-    //     } catch (IllegalArgumentException ex) {
-    //         throw new IllegalArgumentException("Invalid account type: " + accountType);
-    //     }
-
-    //     if (isAdmin) {
-    //         // Create directly
-    //         Account account = Account.builder()
-    //                 .userId(userId)
-    //                 .accountNumber(AccountNumberGenerator.generate())
-    //                 .balance(BigDecimal.ZERO)
-    //                 .accountType(type)
-    //                 .active(true)
-    //                 .openedAt(LocalDateTime.now())
-    //                 .build();
-    //         return mapToResponse(accountRepository.save(account));
-    //     } else {
-    //         // Save as a request
-    //         AccountRequest request = AccountRequest.builder()
-    //                 .userId(userId)
-    //                 .accountType(type)
-    //                 .requestedAt(LocalDateTime.now())
-    //                 .status(RequestStatus.PENDING)
-    //                 .build();
-    //         accountRequestRepository.save(request);
-    //         return AccountResponse.builder()
-    //                 .id(request.getId())
-    //                 .accountNumber("REQUESTED")
-    //                 .accountType(type)
-    //                 .balance(BigDecimal.ZERO)
-    //                 .isActive(false)
-    //                 .maskedAccountNumber("REQUESTED")
-    //                 .openAt(null)
-    //                 .build();
-    //     }
-    // }
     public AccountResponse createAccount(String userId, String accountType, boolean isAdmin) {
         AccountType type;
         try {

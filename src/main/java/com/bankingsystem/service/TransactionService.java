@@ -141,43 +141,6 @@ public class TransactionService {
         return transactionRepository.save(tx);
     }
 
-
-
-    // @Transactional
-    // public Transaction approveTransaction(String id) {
-    //     Transaction tx = getTransactionById(id);
-
-    //     if (tx.getStatus() != TransactionStatus.PENDING) {
-    //         throw new IllegalStateException("Only pending transactions can be approved.");
-    //     }
-
-    //     if (tx.getType() == TransactionType.DEPOSIT) {
-    //         Account account = getAccountById(tx.getTargetAccountId(), "Target");
-    //         account.setBalance(account.getBalance().add(tx.getAmount()));
-    //         accountRepository.save(account);
-    //     } else if (tx.getType() == TransactionType.WITHDRAW) {
-    //         Account account = getAccountById(tx.getSourceAccountId(), "Source");
-    //         validateSufficientBalance(account, tx.getAmount(), "withdrawal approval");
-    //         account.setBalance(account.getBalance().subtract(tx.getAmount()));
-    //         accountRepository.save(account);
-    //     }
-
-    //     tx.setStatus(TransactionStatus.SUCCESS);
-    //     return transactionRepository.save(tx);
-    // }
-
-    // @Transactional
-    // public Transaction rejectTransaction(String id) {
-    //     Transaction tx = getTransactionById(id);
-
-    //     if (tx.getStatus() != TransactionStatus.PENDING) {
-    //         throw new IllegalStateException("Only pending transactions can be rejected.");
-    //     }
-
-    //     tx.setStatus(TransactionStatus.REJECTED);
-    //     return transactionRepository.save(tx);
-    // }
-
     public List<TransactionResponse> getPendingTransactions() {
         return transactionRepository.findByStatus(TransactionStatus.PENDING).stream()
                 .map(this::mapToResponse)
