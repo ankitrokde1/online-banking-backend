@@ -34,31 +34,34 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
 
+    //done
     @GetMapping("/health-check")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Application Running...");
     }
 
-
+    //done
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of ("message", "User registered successfully."));
     }
 
-
+    //done
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getUsernameOrEmail());
         return ResponseEntity.ok(Map.of("message", "Reset link sent to your email."));
     }
 
+    //done
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password reset successfully."));
     }
 
+    //done
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
         try {
@@ -78,6 +81,7 @@ public class AuthController {
     }
 
 
+    //done*
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
         jwtTokenProvider.clearJwtCookie(response);

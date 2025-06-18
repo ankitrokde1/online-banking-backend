@@ -78,6 +78,8 @@ public class UserService {
             }
         }
 
+            
+        
         // Role update (if allowed)
         if (updatedUser.getRole() != null && !updatedUser.getRole().equals(existingUser.getRole())) {
             boolean isAdmin = authentication.getAuthorities().stream()

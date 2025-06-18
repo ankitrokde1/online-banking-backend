@@ -2,6 +2,7 @@ package com.bankingsystem.dto.response;
 
 import com.bankingsystem.entity.Account;
 import com.bankingsystem.entity.enums.AccountType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class AccountResponse {
     private String accountNumber;      // Masked in getter
     private AccountType accountType;
     private BigDecimal balance;
+    @JsonProperty("isActive")
     private boolean isActive;
     private LocalDateTime openAt;
     private String maskedAccountNumber;

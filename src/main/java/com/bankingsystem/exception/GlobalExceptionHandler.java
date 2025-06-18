@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -14,10 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
+import org.springframework.http.MediaType;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -200,15 +202,26 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
-        String supportedMethods = ex.getSupportedHttpMethods() != null
-                ? ex.getSupportedHttpMethods().stream().map(HttpMethod::name).toList()
-                .toString().replace("[", "").replace("]", "")
-                : "N/A";
+public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
+    String supportedMethods;
 
-        String message = "Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods are: " + supportedMethods;
-        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
+    Set<HttpMethod> methods = ex.getSupportedHttpMethods();
+    if (methods != null && !methods.isEmpty()) {
+        supportedMethods = methods.stream()
+                .map(HttpMethod::name)
+                .toList()
+                .toString()
+                .replace("[", "")
+                .replace("]", "");
+    } else {
+        supportedMethods = "N/A";
     }
+
+    String message = "Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods are: " + supportedMethods;
+    return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
+}
+
+    
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, WebRequest request) {
         String paramName = ex.getParameterName();
@@ -217,7 +230,36 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, message, request);
     }
 
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Object> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
+            WebRequest request) {
+        String unsupportedContentType = ex.getContentType() != null ? ex.getContentType().toString() : "unknown";
 
+        String supportedTypes = (ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty())
+                ? ex.getSupportedMediaTypes().stream()
+                        .map(MediaType::toString)
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("none")
+                : "none";
+
+        String message = "Content-Type '" + unsupportedContentType + "' is not supported. Supported types: "
+                + supportedTypes;
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, message, request);
+    }
+
+
+    @ExceptionHandler(AccountRequestNotFoundException.class)
+    public ResponseEntity<Object> handleAccountRequestNotFound(AccountRequestNotFoundException ex, WebRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+    
+    @ExceptionHandler(AdminSelfAccountCreationException.class)
+    public ResponseEntity<Object> handleAdminSelfAccountCreation(AdminSelfAccountCreationException ex,
+            WebRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+    
+    
 
 
 

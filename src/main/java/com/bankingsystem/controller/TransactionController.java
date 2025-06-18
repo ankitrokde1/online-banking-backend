@@ -23,6 +23,7 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
+    //done*
     @PostMapping("/request-deposit")
     public ResponseEntity<TransactionResponse> requestDeposit(
             @Valid @RequestBody TransactionRequest request, Authentication authentication) {
@@ -30,6 +31,7 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.mapToResponse(transaction));
     }
 
+    //done
     @PostMapping("/request-withdraw")
     public ResponseEntity<TransactionResponse> requestWithdraw(
             @Valid @RequestBody TransactionRequest request, Authentication authentication) {
@@ -37,36 +39,16 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.mapToResponse(transaction));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/approve/{transactionId}")
-    public ResponseEntity<TransactionResponse> approveTransaction(@PathVariable String transactionId) {
-        Transaction transaction = transactionService.approveTransaction(transactionId);
-        return ResponseEntity.ok(transactionService.mapToResponse(transaction));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/reject/{transactionId}")
-    public ResponseEntity<TransactionResponse> rejectTransaction(@PathVariable String transactionId) {
-        Transaction transaction = transactionService.rejectTransaction(transactionId);
-        return ResponseEntity.ok(transactionService.mapToResponse(transaction));
-    }
-
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/pending")
-    public ResponseEntity<List<TransactionResponse>> getPendingTransactions() {
-        return ResponseEntity.ok(
-                transactionService.getPendingTransactions()
-        );
-    }
-
+    //done
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> transfer(@Valid @RequestBody TransactionRequest request) {
-        Transaction transaction = transactionService.transfer(request);
+    public ResponseEntity<TransactionResponse> transfer(@Valid @RequestBody TransactionRequest request,
+            Authentication authentication) {
+        Transaction transaction = transactionService.transfer(request, authentication);
         return ResponseEntity.ok(transactionService.mapToResponse(transaction));
     }
 
+    //done
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @GetMapping("/{accountId}")
     public ResponseEntity<?> getAllForAccount(@PathVariable String accountId, Authentication authentication) {

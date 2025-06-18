@@ -42,6 +42,13 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setCreatedAt(LocalDateTime.now());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        // Only admin can assign roles
+//        if (request.getRole().equalsIgnoreCase(String.valueOf(UserRole.ADMIN))) {
+//            user.setRole(parseUserRole(request.getRole().toString()));
+//        } else {
+//            user.setRole(UserRole.CUSTOMER);
+//        }
         user.setRole(request.getRole() != null ? parseUserRole(request.getRole().toString()) : UserRole.CUSTOMER);
         userRepository.save(user);
     }

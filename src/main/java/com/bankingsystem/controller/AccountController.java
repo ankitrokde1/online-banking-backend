@@ -2,7 +2,6 @@ package com.bankingsystem.controller;
 
 import com.bankingsystem.dto.response.AccountResponse;
 import com.bankingsystem.entity.Account;
-import com.bankingsystem.entity.AccountRequest;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.exception.AccountNotFoundException;
 import com.bankingsystem.service.AccountService;
@@ -27,6 +26,7 @@ public class AccountController {
 
     private final AccountService accountService;
 
+    //done
     @PostMapping("/create")
     public ResponseEntity<AccountResponse> createAccount(
             @RequestParam String accountType,
@@ -37,35 +37,28 @@ public class AccountController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // ADMIN: View all account requests
-    @GetMapping("/requests")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AccountRequest>> getAccountRequests() {
-        return ResponseEntity.ok(accountService.getPendingAccountRequests());
-    }
-
-    @PutMapping("/requests/{requestId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> processAccountRequest(
-            @PathVariable String requestId,
-            @RequestParam boolean approve) {
-        String result = accountService.handleAccountRequest(requestId, approve);
-        return ResponseEntity.ok(Map.of("message", result));
-    }
-
+    //done
     // Get all accounts for authenticated user
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-    public ResponseEntity<List<AccountResponse>> getUserAccounts(Authentication authentication) {
+    public ResponseEntity<?> getUserAccounts(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         String userId = user.getId();
         List<Account> accounts = accountService.getAccountsByUserId(userId);
+
+        if (accounts.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No accounts found for the user."));
+        }
+
         List<AccountResponse> accountResponse = accounts.stream()
                 .map(accountService::mapToResponse)
                 .toList();
         return ResponseEntity.ok(accountResponse);
     }
 
+    //done
     @GetMapping("/{accountNumber}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<AccountResponse> getByAccountNumber(
@@ -82,6 +75,7 @@ public class AccountController {
         return ResponseEntity.ok(response);
     }
 
+    //done
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @PutMapping("/deactivate/{accountNumber}")
     public ResponseEntity<?> deactivateAccount(
@@ -100,7 +94,7 @@ public class AccountController {
                 : ResponseEntity.ok(Map.of("message", "Account was already deactivated."));
     }
 
-
+    //done
     @PutMapping("/activate/{accountNumber}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     public ResponseEntity<?> activateAccount(
