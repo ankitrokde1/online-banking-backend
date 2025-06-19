@@ -1,5 +1,6 @@
 package com.bankingsystem.service;
 
+import com.bankingsystem.controller.AuthController;
 import com.bankingsystem.dto.request.TransactionRequest;
 import com.bankingsystem.dto.response.TransactionResponse;
 import com.bankingsystem.entity.Account;
@@ -12,6 +13,8 @@ import com.bankingsystem.repository.AccountRepository;
 import com.bankingsystem.repository.TransactionRepository;
 import com.bankingsystem.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -25,14 +28,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionService {
 
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
+
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
 
     @Transactional
     public Transaction requestDeposit(TransactionRequest request, Authentication auth) {
-        validateAmount(request.getAmount(), "Deposit");
+        logger.debug("Processing deposit request by [{}] to [{}] amount [{}]",
+                auth.getName(), request.getTargetAccountId(), request.getAmount());
 
+        validateAmount(request.getAmount(), "Deposit");
         Account account = getAccountById(request.getTargetAccountId(), "Target");
         ensureAccountIsActive(account, "Target");
 
@@ -51,13 +58,17 @@ public class TransactionService {
         account.setBalance(account.getBalance().add(request.getAmount()));
         accountRepository.save(account);
 
+        logger.info("Deposit transaction created. Status: {}, Account ID: {}", TransactionStatus.SUCCESS, account.getId());
         return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request, TransactionStatus.SUCCESS);
     }
 
     @Transactional
     public Transaction requestWithdraw(TransactionRequest request, Authentication auth) {
-        validateAmount(request.getAmount(), "Withdraw");
 
+        logger.debug("Processing withdrawal request by [{}] from [{}] amount [{}]",
+                auth.getName(), request.getSourceAccountId(), request.getAmount());
+
+        validateAmount(request.getAmount(), "Withdraw");
         Account account = getAccountById(request.getSourceAccountId(), "Source");
         ensureAccountIsActive(account, "Source");
         validateSufficientBalance(account, request.getAmount(), "withdrawal");
@@ -77,13 +88,17 @@ public class TransactionService {
         account.setBalance(account.getBalance().subtract(request.getAmount()));
         accountRepository.save(account);
 
+        logger.info("Withdrawal transaction created. Status: {}, Account ID: {}", TransactionStatus.SUCCESS, account.getId());
         return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request, TransactionStatus.SUCCESS);
     }
 
     @Transactional
     public Transaction transfer(TransactionRequest request, Authentication auth) {
-        validateAmount(request.getAmount(), "Transfer");
 
+        logger.debug("Processing transfer by [{}] from [{}] to [{}] amount [{}]",
+                auth.getName(), request.getSourceAccountId(), request.getTargetAccountId(), request.getAmount());
+
+        validateAmount(request.getAmount(), "Transfer");
         Account fromAccount = getAccountById(request.getSourceAccountId(), "Source");
         Account toAccount = getAccountById(request.getTargetAccountId(), "Target");
 
@@ -102,6 +117,7 @@ public class TransactionService {
                 || toAccount.getUserId().equals(user.getId());
 
         if (isAdmin && adminInvolved) {
+            logger.error("Admin [{}] attempted illegal transfer involving own account", auth.getName());
             throw new AccessDeniedException("Admins cannot transfer to/from their own accounts.");
         }
 
@@ -111,12 +127,18 @@ public class TransactionService {
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
+        logger.info("Transfer transaction successful. Amount: {}, From: {}, To: {}",
+                request.getAmount(), fromAccount.getId(), toAccount.getId());
+
         return saveTransaction(TransactionType.TRANSFER, fromAccount.getId(), toAccount.getId(), request,
                 TransactionStatus.SUCCESS);
     }
     
     @Transactional
     public Transaction processTransaction(String id, TransactionStatus action) {
+
+        logger.debug("Processing transaction [{}] with action [{}]", id, action);
+
         Transaction tx = getTransactionById(id);
 
         if (tx.getStatus() != TransactionStatus.PENDING) {
@@ -138,16 +160,22 @@ public class TransactionService {
         }
 
         tx.setStatus(action);
+        logger.info("Transaction [{}] of type [{}] updated to status [{}]", id, tx.getType(), action);
         return transactionRepository.save(tx);
     }
 
     public List<TransactionResponse> getPendingTransactions() {
+        logger.info("Fetching all pending transactions");
+
         return transactionRepository.findByStatus(TransactionStatus.PENDING).stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
     public List<Transaction> getTransactionsForAccountWithAuthorization(String accountId, Authentication auth) {
+
+        logger.debug("Authorizing transaction history access for [{}] on account [{}]", auth.getName(), accountId);
+
         if (!accountExists(accountId)) {
             throw new AccountNotFoundException("Account not found with id: " + accountId);
         }
@@ -157,6 +185,7 @@ public class TransactionService {
             throw new AccessDeniedException("Access denied. You can only view your own account transactions.");
         }
 
+        logger.info("Transaction access granted for account [{}]", accountId);
         return transactionRepository.findBySourceAccountIdOrTargetAccountId(accountId, accountId);
     }
 
@@ -174,6 +203,7 @@ public class TransactionService {
 
     private void validateAmount(BigDecimal amount, String operation) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            logger.warn("Invalid {} amount: {}", operation, amount);
             throw new IllegalArgumentException(operation + " amount must be greater than zero.");
         }
     }

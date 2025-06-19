@@ -3,6 +3,7 @@ package com.bankingsystem.config;
 
 import com.bankingsystem.security.CustomAuthenticationEntryPoint;
 import com.bankingsystem.security.JwtAuthenticationFilter;
+import com.bankingsystem.security.RateLimitingFilter;
 import com.bankingsystem.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +36,7 @@ public class WebSecurityConfig {
 
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
     private final CustomUserDetailsService userDetailsService;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
@@ -53,7 +55,9 @@ public class WebSecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .userDetailsService(userDetailsService)
+                .addFilterBefore(rateLimitingFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
 
         return http.build();
     }
@@ -78,5 +82,11 @@ public class WebSecurityConfig {
         source.registerCorsConfiguration("/api/**", config);
         return source;
     }
+
+    @Bean
+    public RateLimitingFilter rateLimitingFilter() {
+        return new RateLimitingFilter();
+    }
+
 }
 

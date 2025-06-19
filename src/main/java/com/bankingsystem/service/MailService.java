@@ -3,6 +3,8 @@ package com.bankingsystem.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class MailService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MailService.class);
 
     private final JavaMailSender mailSender;
 
@@ -33,6 +37,8 @@ public class MailService {
                 + "<p>Thanks,<br>Online Banking Team</p>";
 
         try {
+            logger.info("Sending password reset email to {}", toEmail);
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setTo(toEmail);
@@ -40,7 +46,10 @@ public class MailService {
             helper.setText(htmlContent, true);
             helper.setFrom(from);
             mailSender.send(message);
+
+            logger.info("Password reset email sent successfully to {}", toEmail);
         } catch (MessagingException e) {
+            logger.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Failed to send email", e);
         }
     }
