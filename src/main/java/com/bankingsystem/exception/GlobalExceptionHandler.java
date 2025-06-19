@@ -1,6 +1,9 @@
 package com.bankingsystem.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.mongodb.MongoTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -16,13 +19,18 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.MediaType;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private ResponseEntity<Object> buildResponse(HttpStatus status, String message, WebRequest request) {
         Map<String, Object> error = new HashMap<>();
@@ -71,7 +79,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex, WebRequest request) {
-        ex.printStackTrace(); // Optional: log it in production
+        logger.error("Unhandled exception occurred: {}", ex.getMessage(), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.", request);
     }
 
@@ -126,7 +134,7 @@ public class GlobalExceptionHandler {
     // Handles business logic access denied (e.g., an account does not belong to user)
     @ExceptionHandler(java.nio.file.AccessDeniedException.class)
     public ResponseEntity<Object> handleNioAccessDeniedException(java.nio.file.AccessDeniedException ex,
-            WebRequest request) {
+                                                                 WebRequest request) {
         return buildResponse(HttpStatus.FORBIDDEN,
                 ex.getMessage() != null ? ex.getMessage() : "You do not have permission to access this resource.",
                 request);
@@ -180,6 +188,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleInvalidTokenException(InvalidTokenException ex, WebRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Object> handleNoResourceFound(NoResourceFoundException ex, WebRequest request) {
         String message = "The requested resource was not found.";
@@ -191,9 +200,10 @@ public class GlobalExceptionHandler {
         String message = "No handler found for " + ex.getHttpMethod() + " " + ex.getRequestURL();
         return buildResponse(HttpStatus.NOT_FOUND, message, request);
     }
+
     @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
     public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
-        return buildResponse(HttpStatus.UNAUTHORIZED,  ex.getMessage() , request);
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
     @ExceptionHandler(TransactionNotFoundException.class)
@@ -202,26 +212,25 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
-    String supportedMethods;
+    public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, WebRequest request) {
+        String supportedMethods;
 
-    Set<HttpMethod> methods = ex.getSupportedHttpMethods();
-    if (methods != null && !methods.isEmpty()) {
-        supportedMethods = methods.stream()
-                .map(HttpMethod::name)
-                .toList()
-                .toString()
-                .replace("[", "")
-                .replace("]", "");
-    } else {
-        supportedMethods = "N/A";
+        Set<HttpMethod> methods = ex.getSupportedHttpMethods();
+        if (methods != null && !methods.isEmpty()) {
+            supportedMethods = methods.stream()
+                    .map(HttpMethod::name)
+                    .toList()
+                    .toString()
+                    .replace("[", "")
+                    .replace("]", "");
+        } else {
+            supportedMethods = "N/A";
+        }
+
+        String message = "Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods are: " + supportedMethods;
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
     }
 
-    String message = "Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods are: " + supportedMethods;
-    return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request);
-}
-
-    
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, WebRequest request) {
         String paramName = ex.getParameterName();
@@ -232,37 +241,45 @@ public ResponseEntity<Object> handleMethodNotSupported(HttpRequestMethodNotSuppo
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Object> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
-            WebRequest request) {
-        String unsupportedContentType = ex.getContentType() != null ? ex.getContentType().toString() : "unknown";
+                                                                  WebRequest request) {
+        MediaType contentType = ex.getContentType();
+        String unsupportedContentType = (contentType != null) ? contentType.toString() : "unspecified content type";
 
-        String supportedTypes = (ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty())
-                ? ex.getSupportedMediaTypes().stream()
-                        .map(MediaType::toString)
-                        .reduce((a, b) -> a + ", " + b)
-                        .orElse("none")
-                : "none";
+        List<MediaType> supportedMediaTypes = ex.getSupportedMediaTypes();
+        String supportedTypes = supportedMediaTypes.isEmpty()
+                ? "none"
+                : supportedMediaTypes.stream()
+                .map(MediaType::toString)
+                .collect(Collectors.joining(", "));
 
-        String message = "Content-Type '" + unsupportedContentType + "' is not supported. Supported types: "
-                + supportedTypes;
+        String message = String.format(
+                "Content-Type '%s' is not supported. Supported types: %s",
+                unsupportedContentType,
+                supportedTypes);
+
         return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, message, request);
     }
-
 
     @ExceptionHandler(AccountRequestNotFoundException.class)
     public ResponseEntity<Object> handleAccountRequestNotFound(AccountRequestNotFoundException ex, WebRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
-    
+
     @ExceptionHandler(AdminSelfAccountCreationException.class)
     public ResponseEntity<Object> handleAdminSelfAccountCreation(AdminSelfAccountCreationException ex,
-            WebRequest request) {
+                                                                 WebRequest request) {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
     }
-    
-    
 
-
-
+    @ExceptionHandler(MongoTimeoutException.class)
+    public ResponseEntity<Object> handleMongoTimeout(MongoTimeoutException ex, WebRequest request) {
+        logger.error("MongoDB connection timed out: {}", ex.getMessage(), ex);
+        return buildResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Unable to connect to the database. Please try again later.",
+                request
+        );
+    }
 
 
 }

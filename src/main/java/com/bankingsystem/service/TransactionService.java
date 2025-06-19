@@ -1,6 +1,5 @@
 package com.bankingsystem.service;
 
-import com.bankingsystem.controller.AuthController;
 import com.bankingsystem.dto.request.TransactionRequest;
 import com.bankingsystem.dto.response.TransactionResponse;
 import com.bankingsystem.entity.Account;

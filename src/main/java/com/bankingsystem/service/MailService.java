@@ -10,6 +10,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.bankingsystem.exception.EmailSendFailedException;
+
 @Service
 @RequiredArgsConstructor
 public class MailService {
@@ -50,7 +52,7 @@ public class MailService {
             logger.info("Password reset email sent successfully to {}", toEmail);
         } catch (MessagingException e) {
             logger.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new EmailSendFailedException("Failed to send email", e);
         }
     }
 }
