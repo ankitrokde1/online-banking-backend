@@ -28,7 +28,7 @@ spring:
       add-mappings: false
 
 server:
-  port: 8080
+  port: ${SERVER_PORT}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -36,15 +36,14 @@ jwt:
 frontend:
   url: ${FRONTEND_URL}
 
-
 ratelimit:
   enabled: true
   requests: 5
-  duration: 60  # in seconds (i.e., 5 requests per 60 seconds)
+  duration: 60 # in seconds (i.e., 5 requests per 60 seconds)
 
 logging:
   file:
-    name: logs/online-banking-app.log  # Relative path (will be created inside your project root)
+    name: logs/online-banking-app.log # Relative path (will be created inside your project root)
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
   level:
