@@ -225,12 +225,7 @@ public class TransactionService {
         }
     }
 
-    private Account getAccountById(String accountId, String label) {
-        return accountRepository.findById(accountId)
-                .orElseThrow(() -> new AccountNotFoundException(label + " account not found."));
-    }
-
-    private Account getAccountByNumber(String accountNumber, String label) {
+       private Account getAccountByNumber(String accountNumber, String label) {
         return accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException(label + " account not found for number: " + accountNumber));
     }
