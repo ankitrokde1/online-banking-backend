@@ -43,3 +43,7 @@ mvnw.cmd
 *.log
 logs/
 **/logs/
+
+
+# env files
+*.env

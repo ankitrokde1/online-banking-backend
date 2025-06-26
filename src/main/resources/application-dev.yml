@@ -1,0 +1,57 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGO_DB_NAME}
+
+  devtools:
+    restart:
+      enabled: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      add-mappings: false
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+
+frontend:
+  url: ${FRONTEND_URL}
+
+
+ratelimit:
+  enabled: true
+  requests: 5
+  duration: 60  # in seconds (i.e., 5 requests per 60 seconds)
+
+logging:
+  file:
+    name: logs/online-banking-app.log  # Relative path (will be created inside your project root)
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.bankingsystem.security.RateLimitingFilter: DEBUG
+    com.bankingsystem.controller.TransactionController: DEBUG
+    com.bankingsystem.service.TransactionService: DEBUG
+    com.bankingsystem.controller.AdminController: DEBUG
+    com.bankingsystem.service.MailService: INFO
+    com.bankingsystem.service.CustomUserDetailsService: DEBUG
