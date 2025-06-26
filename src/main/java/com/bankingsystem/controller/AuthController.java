@@ -40,11 +40,20 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
 
+
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
+    }
+
     //done
     @GetMapping("/health-check")
     public ResponseEntity<?> health() {
-        logger.debug("Health check endpoint called.");
-        return ResponseEntity.ok(Map.of("message", "Application Running..."));
+        return ResponseEntity.ok(Map.of(
+                "status", "UP",
+                "timestamp", System.currentTimeMillis(),
+                "message", "Application Running..."
+        ));
     }
 
     //done
