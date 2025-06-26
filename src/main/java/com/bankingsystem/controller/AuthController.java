@@ -49,9 +49,11 @@ public class AuthController {
     //done
     @GetMapping("/health-check")
     public ResponseEntity<?> health() {
+        String formattedTime = java.time.LocalDateTime.now().toString();
+
         return ResponseEntity.ok(Map.of(
+                "timestamp", formattedTime,
                 "status", "UP",
-                "timestamp", System.currentTimeMillis(),
                 "message", "Application Running..."
         ));
     }

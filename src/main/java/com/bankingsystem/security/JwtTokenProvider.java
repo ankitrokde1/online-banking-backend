@@ -104,7 +104,7 @@ public class JwtTokenProvider {
         cookie.setHttpOnly(true);
         cookie.setPath("/");  // send for all endpoints
         cookie.setMaxAge((int) validityInMilliseconds / 1000);  // in seconds
-        cookie.setSecure(false); // enable if using HTTPS
+        cookie.setSecure(true); // enable if using HTTPS
         response.addCookie(cookie);
     }
 
