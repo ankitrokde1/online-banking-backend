@@ -23,8 +23,8 @@ public class Transaction {
     private TransactionType type; // DEPOSIT, WITHDRAW, TRANSFER
     private BigDecimal amount;
 
-    private String sourceAccountId; // null for DEPOSIT
-    private String targetAccountId; // null for WITHDRAW
+    private String sourceAccountNumber; // null for DEPOSIT
+    private String targetAccountNumber; // null for WITHDRAW
 
     private LocalDateTime timestamp;
     private TransactionStatus status; // SUCCESS, FAILED, etc.

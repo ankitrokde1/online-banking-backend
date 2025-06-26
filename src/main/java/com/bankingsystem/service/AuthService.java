@@ -54,7 +54,7 @@ public class AuthService {
 
         // Only admin can assign roles
 //        if (request.getRole().equalsIgnoreCase(String.valueOf(UserRole.ADMIN))) {
-//            user.setRole(parseUserRole(request.getRole().toString()));
+//            user.setRole(parseUserRole(2request.getRole()));
 //        } else {
 //            user.setRole(UserRole.CUSTOMER);
 //        }

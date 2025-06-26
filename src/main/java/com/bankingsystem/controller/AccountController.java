@@ -58,12 +58,12 @@ public class AccountController {
 
         List<Account> accounts = accountService.getAccountsByUserId(userId);
 
-        if (accounts.isEmpty()) {
-            logger.warn("No accounts found for user [{}]", user.getUsername());
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "No accounts found for the user."));
-        }
+//        if (accounts.isEmpty()) {
+//            logger.warn("No accounts found for user [{}]", user.getUsername());
+//            return ResponseEntity
+//                    .status(HttpStatus.NOT_FOUND)
+//                    .body(Map.of("message", "No accounts found for the user."));
+//        }
 
         List<AccountResponse> accountResponse = accounts.stream()
                 .map(accountService::mapToResponse)

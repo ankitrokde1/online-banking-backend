@@ -102,8 +102,8 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/process/transaction/{transactionId}")
     public ResponseEntity<TransactionResponse> processTransaction(
-        @PathVariable String transactionId,
-        @RequestParam("action") String action // "approve" or "reject"
+            @PathVariable String transactionId,
+            @RequestParam("action") String action // "approve" or "reject"
     ) {
 
         logger.info("Admin is processing transaction [{}] with action [{}]", transactionId, action);
@@ -133,18 +133,17 @@ public class AdminController {
         logger.info("Admin requested list of pending transactions");
 
         List<TransactionResponse> pendingTransactions = transactionService.getPendingTransactions();
-        if (pendingTransactions.isEmpty()) {
-            logger.warn("No pending transactions found");
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "No Pending transactions found."));
-
-        }
+//        if (pendingTransactions.isEmpty()) {
+//            logger.warn("No pending transactions found");
+//            return ResponseEntity
+//                    .status(HttpStatus.NOT_FOUND)
+//                    .body(Map.of("message", "No Pending transactions found."));
+//
+//        }
 
         logger.info("Found [{}] pending transactions", pendingTransactions.size());
 
-        return ResponseEntity.ok(
-                transactionService.getPendingTransactions());
+        return ResponseEntity.ok(pendingTransactions);
     }
 
     //done
@@ -157,12 +156,12 @@ public class AdminController {
 
         List<AccountRequest> pendingAccountRequests = accountService.getPendingAccountRequests();
 
-        if (pendingAccountRequests.isEmpty()) {
-            logger.warn("No pending account requests found");
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "No Pending accounts requests found."));
-        }
+//        if (pendingAccountRequests.isEmpty()) {
+//            logger.warn("No pending account requests found");
+//            return ResponseEntity
+//                    .status(HttpStatus.NOT_FOUND)
+//                    .body(Map.of("message", "No Pending accounts requests found."));
+//        }
 
         logger.info("Found [{}] pending account requests", pendingAccountRequests.size());
         return ResponseEntity.ok(pendingAccountRequests);

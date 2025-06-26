@@ -24,7 +24,7 @@ public class JwtTokenProvider {
     public static final String COOKIE_NAME = "jwt_token";
 
     // Token validity: 15 minutes (900,000 milliseconds)
-    private final long validityInMilliseconds = 15 * 60 * 1000;
+    private final long validityInMilliseconds = 50 * 60 * 1000;
 
 
 

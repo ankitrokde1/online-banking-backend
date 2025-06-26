@@ -36,10 +36,11 @@ public class TransactionService {
     @Transactional
     public Transaction requestDeposit(TransactionRequest request, Authentication auth) {
         logger.debug("Processing deposit request by [{}] to [{}] amount [{}]",
-                auth.getName(), request.getTargetAccountId(), request.getAmount());
+                auth.getName(), request.getTargetAccountNumber(), request.getAmount());
 
         validateAmount(request.getAmount(), "Deposit");
-        Account account = getAccountById(request.getTargetAccountId(), "Target");
+
+        Account account = getAccountByNumber(request.getTargetAccountNumber(), "Target");
         ensureAccountIsActive(account, "Target");
 
         User user = getAuthenticatedUser(auth);
@@ -47,7 +48,7 @@ public class TransactionService {
         boolean isOwnAccount = account.getUserId().equals(user.getId());
 
         if (!isAdmin) {
-            return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request, TransactionStatus.PENDING);
+            return saveTransaction(TransactionType.DEPOSIT, null, account.getAccountNumber(), request, TransactionStatus.PENDING);
         }
 
         if (isOwnAccount) {
@@ -57,18 +58,18 @@ public class TransactionService {
         account.setBalance(account.getBalance().add(request.getAmount()));
         accountRepository.save(account);
 
-        logger.info("Deposit transaction created. Status: {}, Account ID: {}", TransactionStatus.SUCCESS, account.getId());
-        return saveTransaction(TransactionType.DEPOSIT, null, account.getId(), request, TransactionStatus.SUCCESS);
+        logger.info("Deposit transaction created. Status: {}, Account Number: {}", TransactionStatus.SUCCESS, account.getAccountNumber());
+        return saveTransaction(TransactionType.DEPOSIT, null, account.getAccountNumber(), request, TransactionStatus.SUCCESS);
     }
 
     @Transactional
     public Transaction requestWithdraw(TransactionRequest request, Authentication auth) {
 
         logger.debug("Processing withdrawal request by [{}] from [{}] amount [{}]",
-                auth.getName(), request.getSourceAccountId(), request.getAmount());
+                auth.getName(), request.getSourceAccountNumber(), request.getAmount());
 
         validateAmount(request.getAmount(), "Withdraw");
-        Account account = getAccountById(request.getSourceAccountId(), "Source");
+        Account account = getAccountByNumber(request.getSourceAccountNumber(), "Source");
         ensureAccountIsActive(account, "Source");
         validateSufficientBalance(account, request.getAmount(), "withdrawal");
 
@@ -77,7 +78,7 @@ public class TransactionService {
         boolean isOwnAccount = account.getUserId().equals(user.getId());
 
         if (!isAdmin) {
-            return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request, TransactionStatus.PENDING);
+            return saveTransaction(TransactionType.WITHDRAW, account.getAccountNumber(), null, request, TransactionStatus.PENDING);
         }
 
         if (isOwnAccount) {
@@ -88,18 +89,23 @@ public class TransactionService {
         accountRepository.save(account);
 
         logger.info("Withdrawal transaction created. Status: {}, Account ID: {}", TransactionStatus.SUCCESS, account.getId());
-        return saveTransaction(TransactionType.WITHDRAW, account.getId(), null, request, TransactionStatus.SUCCESS);
+        return saveTransaction(TransactionType.WITHDRAW, account.getAccountNumber(), null, request, TransactionStatus.SUCCESS);
     }
 
     @Transactional
     public Transaction transfer(TransactionRequest request, Authentication auth) {
 
-        logger.debug("Processing transfer by [{}] from [{}] to [{}] amount [{}]",
-                auth.getName(), request.getSourceAccountId(), request.getTargetAccountId(), request.getAmount());
+        logger.info("Processing transfer by user [{}] from [{}] to [{}] amount [{}]",
+                auth.getName(),
+                request.getSourceAccountNumber(),
+                request.getTargetAccountNumber(),
+                request.getAmount());
 
         validateAmount(request.getAmount(), "Transfer");
-        Account fromAccount = getAccountById(request.getSourceAccountId(), "Source");
-        Account toAccount = getAccountById(request.getTargetAccountId(), "Target");
+
+        Account fromAccount = getAccountByNumber(request.getSourceAccountNumber(), "Source");
+        Account toAccount = getAccountByNumber(request.getTargetAccountNumber(), "Target");
+
 
         ensureAccountIsActive(fromAccount, "Source");
         ensureAccountIsActive(toAccount, "Target");
@@ -127,9 +133,9 @@ public class TransactionService {
         accountRepository.save(toAccount);
 
         logger.info("Transfer transaction successful. Amount: {}, From: {}, To: {}",
-                request.getAmount(), fromAccount.getId(), toAccount.getId());
+                request.getAmount(), fromAccount.getAccountNumber(), toAccount.getAccountNumber());
 
-        return saveTransaction(TransactionType.TRANSFER, fromAccount.getId(), toAccount.getId(), request,
+        return saveTransaction(TransactionType.TRANSFER, fromAccount.getAccountNumber(), toAccount.getAccountNumber(), request,
                 TransactionStatus.SUCCESS);
     }
     
@@ -146,12 +152,12 @@ public class TransactionService {
 
         if (action == TransactionStatus.SUCCESS) {
             if (tx.getType() == TransactionType.DEPOSIT) {
-                Account account = getAccountById(tx.getTargetAccountId(), "Target");
+                Account account = getAccountByNumber(tx.getTargetAccountNumber(), "Target");
                 account.setBalance(account.getBalance().add(tx.getAmount()));
                 accountRepository.save(account);
                 
             } else if (tx.getType() == TransactionType.WITHDRAW) {
-                Account account = getAccountById(tx.getSourceAccountId(), "Source");
+                Account account = getAccountByNumber(tx.getSourceAccountNumber(), "Source");
                 validateSufficientBalance(account, tx.getAmount(), "withdrawal approval");
                 account.setBalance(account.getBalance().subtract(tx.getAmount()));
                 accountRepository.save(account);
@@ -171,21 +177,21 @@ public class TransactionService {
                 .toList();
     }
 
-    public List<Transaction> getTransactionsForAccountWithAuthorization(String accountId, Authentication auth) {
+    public List<Transaction> getTransactionsForAccountWithAuthorization(String accountNumber, Authentication auth) {
 
-        logger.debug("Authorizing transaction history access for [{}] on account [{}]", auth.getName(), accountId);
+        logger.debug("Authorizing transaction history access for [{}] on account [{}]", auth.getName(), accountNumber);
 
-        if (!accountExists(accountId)) {
-            throw new AccountNotFoundException("Account not found with id: " + accountId);
+        if (!accountExists(accountNumber)) {
+            throw new AccountNotFoundException("Account not found with Number: " + accountNumber);
         }
 
         boolean isAdmin = isAdmin(auth);
-        if (!isAdmin && !isAccountOwnedByUser(accountId, auth.getName())) {
+        if (!isAdmin && !isAccountOwnedByUser(accountNumber, auth.getName())) {
             throw new AccessDeniedException("Access denied. You can only view your own account transactions.");
         }
 
-        logger.info("Transaction access granted for account [{}]", accountId);
-        return transactionRepository.findBySourceAccountIdOrTargetAccountId(accountId, accountId);
+        logger.info("Transaction access granted for account [{}]", accountNumber);
+        return transactionRepository.findBySourceAccountNumberOrTargetAccountNumber(accountNumber, accountNumber);
     }
 
     // -------------------- HELPER METHODS --------------------
@@ -224,41 +230,51 @@ public class TransactionService {
                 .orElseThrow(() -> new AccountNotFoundException(label + " account not found."));
     }
 
+    private Account getAccountByNumber(String accountNumber, String label) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(label + " account not found for number: " + accountNumber));
+    }
+
+
     private Transaction getTransactionById(String id) {
         return transactionRepository.findById(id)
                 .orElseThrow(() -> new TransactionNotFoundException("Transaction not found."));
     }
 
-    private boolean isAccountOwnedByUser(String accountId, String username) {
+    private boolean isAccountOwnedByUser(String accountNumber, String username) {
         return userRepository.findByUsername(username)
-                .flatMap(user -> accountRepository.findById(accountId)
+                .flatMap(user -> accountRepository.findByAccountNumber(accountNumber)
                         .map(account -> account.getUserId().equals(user.getId())))
                 .orElse(false);
     }
 
-    private boolean accountExists(String accountId) {
-        return accountRepository.existsById(accountId);
+
+
+    private boolean accountExists(String accountNumber) {
+        return accountRepository.existsByAccountNumber(accountNumber);
     }
+
 
     public TransactionResponse mapToResponse(Transaction tx) {
         return new TransactionResponse(
                 tx.getId(),
-                tx.getSourceAccountId(),
-                tx.getTargetAccountId(),
+                tx.getSourceAccountNumber(),
+                tx.getTargetAccountNumber(),
                 tx.getAmount(),
                 tx.getType(),
                 tx.getStatus(),
+                tx.getDescription(),
                 tx.getTimestamp()
         );
     }
 
-    private Transaction saveTransaction(TransactionType type, String sourceId, String targetId,
+    private Transaction saveTransaction(TransactionType type, String sourceAccountNumber, String targetAccountNumber,
                                         TransactionRequest request, TransactionStatus status) {
         Transaction tx = new Transaction();
         tx.setType(type);
         tx.setAmount(request.getAmount());
-        tx.setSourceAccountId(sourceId);
-        tx.setTargetAccountId(targetId);
+        tx.setSourceAccountNumber(sourceAccountNumber);
+        tx.setTargetAccountNumber(targetAccountNumber);
         tx.setStatus(status);
         tx.setTimestamp(LocalDateTime.now());
 

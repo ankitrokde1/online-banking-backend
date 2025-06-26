@@ -31,7 +31,7 @@ public class TransactionController {
     public ResponseEntity<TransactionResponse> requestDeposit(
             @Valid @RequestBody TransactionRequest request, Authentication authentication) {
         logger.info("Received deposit request by user [{}] for account [{}] with amount [{}]",
-                authentication.getName(), request.getTargetAccountId(), request.getAmount());
+                authentication.getName(), request.getTargetAccountNumber(), request.getAmount());
 
         Transaction transaction = transactionService.requestDeposit(request, authentication);
 
@@ -46,7 +46,7 @@ public class TransactionController {
     public ResponseEntity<TransactionResponse> requestWithdraw(
             @Valid @RequestBody TransactionRequest request, Authentication authentication) {
         logger.info("Received withdraw request by user [{}] from account [{}] with amount [{}]",
-                authentication.getName(), request.getSourceAccountId(), request.getAmount());
+                authentication.getName(), request.getSourceAccountNumber(), request.getAmount());
 
         Transaction transaction = transactionService.requestWithdraw(request, authentication);
 
@@ -62,7 +62,11 @@ public class TransactionController {
     public ResponseEntity<TransactionResponse> transfer(@Valid @RequestBody TransactionRequest request,
                                                         Authentication authentication) {
         logger.info("Transfer request by user [{}] from [{}] to [{}] amount [{}]",
-                authentication.getName(), request.getSourceAccountId(), request.getTargetAccountId(), request.getAmount());
+                authentication.getName(),
+                request.getSourceAccountNumber(),
+                request.getTargetAccountNumber(),
+                request.getAmount());
+
 
         Transaction transaction = transactionService.transfer(request, authentication);
 
@@ -74,14 +78,14 @@ public class TransactionController {
 
     //done
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
-    @GetMapping("/{accountId}")
-    public ResponseEntity<?> getAllForAccount(@PathVariable String accountId, Authentication authentication) {
+    @GetMapping("/{accountNumber}")
+    public ResponseEntity<?> getAllForAccount(@PathVariable String accountNumber, Authentication authentication) {
 
-        logger.info("Fetching transactions for account [{}] requested by [{}]", accountId, authentication.getName());
+        logger.info("Fetching transactions for account [{}] requested by [{}]", accountNumber, authentication.getName());
 
-        List<Transaction> transactions = transactionService.getTransactionsForAccountWithAuthorization(accountId, authentication);
+        List<Transaction> transactions = transactionService.getTransactionsForAccountWithAuthorization(accountNumber, authentication);
 
-        logger.info("Found [{}] transactions for account [{}]", transactions.size(), accountId);
+        logger.info("Found [{}] transactions for account [{}]", transactions.size(), accountNumber);
 
         List<TransactionResponse> responses = transactions.stream()
                 .map(transactionService::mapToResponse)

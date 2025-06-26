@@ -10,7 +10,8 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends MongoRepository<Transaction, String> {
 
-    List<Transaction> findBySourceAccountIdOrTargetAccountId(String sourceAccountId, String targetAccountId);
+//    List<Transaction> findBySourceAccountIdOrTargetAccountId(String sourceAccountNumber, String targetAccountNumber);
+    List<Transaction> findBySourceAccountNumberOrTargetAccountNumber(String sourceAccountNumber, String targetAccountNumber);
     List<Transaction> findByStatus(TransactionStatus status);
 
 }

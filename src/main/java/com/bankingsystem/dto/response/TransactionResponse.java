@@ -14,11 +14,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TransactionResponse {
     private String id;
-    private String fromAccountId;
-    private String toAccountId; // null for deposit/withdraw
+    private String fromAccountNumber;
+    private String toAccountNumber; // null for deposit/withdraw
     private BigDecimal amount;
     private TransactionType type; // "DEPOSIT", "WITHDRAW", "TRANSFER"
     private TransactionStatus status;
+    private String description;
     private LocalDateTime timestamp;
 }
 
