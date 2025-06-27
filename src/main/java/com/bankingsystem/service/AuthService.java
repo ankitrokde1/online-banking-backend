@@ -12,6 +12,7 @@ import com.bankingsystem.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,17 +52,43 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setCreatedAt(LocalDateTime.now());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        // Only admin can assign roles
-//        if (request.getRole().equalsIgnoreCase(String.valueOf(UserRole.ADMIN))) {
-//            user.setRole(parseUserRole(2request.getRole()));
-//        } else {
-//            user.setRole(UserRole.CUSTOMER);
-//        }
-        user.setRole(request.getRole() != null ? parseUserRole(request.getRole()) : UserRole.CUSTOMER);
+        user.setRole(UserRole.CUSTOMER);
         userRepository.save(user);
         logger.info("User registered successfully with username: {}", request.getUsername());
     }
+
+    public void createAdminUser(RegisterRequest request, Authentication authentication) {
+        logger.info("Admin [{}] attempting to create a new ADMIN user: {}", authentication.getName(), request.getUsername());
+
+        // Optional: double-check if current user is ADMIN
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            logger.warn("Unauthorized attempt by [{}] to create an ADMIN user", authentication.getName());
+            throw new AccessDeniedException("Only admins can create other admin users.");
+        }
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            logger.warn("Admin creation failed: Username '{}' already taken", request.getUsername());
+            throw new UserAlreadyExistsException("Username is already taken.");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            logger.warn("Admin creation failed: Email '{}' already in use", request.getEmail());
+            throw new UserAlreadyExistsException("Email is already in use.");
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setCreatedAt(LocalDateTime.now());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(UserRole.ADMIN); // ✅ forcibly set
+
+        userRepository.save(user);
+        logger.info("Admin [{}] successfully created new admin user: {}", authentication.getName(), user.getUsername());
+    }
+
 
     // login method
     public JwtResponse authenticateAndGenerateToken(Authentication authentication) {

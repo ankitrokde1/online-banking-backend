@@ -1,6 +1,7 @@
 package com.bankingsystem.controller;
 
 
+import com.bankingsystem.dto.request.RegisterRequest;
 import com.bankingsystem.dto.response.TransactionResponse;
 import com.bankingsystem.dto.response.UserResponse;
 import com.bankingsystem.entity.AccountRequest;
@@ -8,9 +9,11 @@ import com.bankingsystem.entity.Transaction;
 import com.bankingsystem.entity.User;
 import com.bankingsystem.entity.enums.TransactionStatus;
 import com.bankingsystem.service.AccountService;
+import com.bankingsystem.service.AuthService;
 import com.bankingsystem.service.TransactionService;
 import com.bankingsystem.service.UserService;
 import com.bankingsystem.util.AuthUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
