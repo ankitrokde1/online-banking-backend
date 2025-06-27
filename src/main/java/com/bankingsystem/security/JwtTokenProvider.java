@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.time.Duration;
 import java.util.Date;
+import org.springframework.http.ResponseCookie;
 
 @Component
 public class JwtTokenProvider {
@@ -100,19 +101,37 @@ public class JwtTokenProvider {
 
 
     public void addJwtToCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie(COOKIE_NAME, token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");  // send for all endpoints
-        cookie.setMaxAge((int) validityInMilliseconds / 1000);  // in seconds
-        cookie.setSecure(true); // enable if using HTTPS
-        response.addCookie(cookie);
+//        ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, token);
+//        cookie.setHttpOnly(true);
+//        cookie.setPath("/");  // send for all endpoints
+//        cookie.setMaxAge((int) validityInMilliseconds / 1000);  // in seconds
+//        cookie.setSecure(true); // enable if using HTTPS
+//        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, token)
+                .httpOnly(true)
+                .secure(true) // ✅ required on HTTPS
+                .path("/")
+                .maxAge(validityInMilliseconds / 1000)
+                .sameSite("None") // ✅ KEY FIX for Vercel → Render
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     public void clearJwtCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(COOKIE_NAME, "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+//        Cookie cookie = new Cookie(COOKIE_NAME, "");
+//        cookie.setPath("/");
+//        cookie.setMaxAge(0);
+//        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(true)            // same as when setting
+                .path("/")
+                .maxAge(0)               // delete immediately
+                .sameSite("None")        // critical for Vercel + Render
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     public String getJwtFromCookies(HttpServletRequest request) {
