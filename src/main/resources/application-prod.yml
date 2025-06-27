@@ -48,9 +48,4 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
   level:
     root: INFO
-    com.bankingsystem.security.RateLimitingFilter: DEBUG
-    com.bankingsystem.controller.TransactionController: DEBUG
-    com.bankingsystem.service.TransactionService: DEBUG
-    com.bankingsystem.controller.AdminController: DEBUG
-    com.bankingsystem.service.MailService: INFO
-    com.bankingsystem.service.CustomUserDetailsService: DEBUG
+    com.bankingsystem: INFO
