@@ -126,6 +126,11 @@ public class TransactionService {
             throw new AccessDeniedException("Admins cannot transfer to/from their own accounts.");
         }
 
+
+        if (!fromAccount.getUserId().equals(user.getId())) {
+            throw new AccessDeniedException("You are only allowed to transfer from your own account.");
+        }
+
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
 
